@@ -28,31 +28,19 @@
             --preview-text-main: #000000;
         }
 
-html {
-    height: 100%;
-}
+        html, body {
+    margin: 0; padding: 0; width: 100%; height: 100vh; overflow: hidden;
+            touch-action: none; box-sizing: border-box;
+            font-family: var(--sys-font-family);
+            -webkit-tap-highlight-color: transparent;
+        }
 
-        html {
-    margin: 0; padding: 0; width: 100%; height: 100%;
-}
-body {
-    margin: 0; padding: 0; width: 100%;
-    height: 100dvh;          /* ← 关键！动态视口高度 */
-    min-height: -webkit-fill-available; /* ← iOS兜底 */
-    overflow: hidden;
-    touch-action: none; box-sizing: border-box;
-    font-family: var(--sys-font-family);
-    -webkit-tap-highlight-color: transparent;
-    display: flex; justify-content: center; background: transparent;
-}
-           
         body { display: flex; justify-content: center; background: transparent; }
 
         /* 主界面底层壁纸 */
-       .main-wallpaper {
-    position: fixed;
-    top: 0; left: 0; width: 100%; height: 100dvh;
-    min-height: -webkit-fill-available;
+        .main-wallpaper {
+            position: fixed; 
+            top: 0; left: 0; width: 100%; height: 100vh;
             background-color: var(--bg-color);
             background-image: radial-gradient(#d5d5d5 2px, transparent 2px);
             background-size: 38px 38px; 
@@ -66,8 +54,7 @@ body {
         }
 
         .iphone-screen {
-    width: 100%; max-width: 400px; height: 100dvh;
-    min-height: -webkit-fill-available; display: flex;
+            width: 100%; max-width: 400px; height: 100vh; display: flex;
             flex-direction: column; align-items: center; padding: 0; 
             position: relative; overflow: hidden; z-index: 1;
             background: transparent;
@@ -221,7 +208,7 @@ body {
         .dock-container {
             width: 90%; background: var(--dock-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
             border-radius: 35px; padding: 18px 15px; display: flex; justify-content: space-around;
-            margin-bottom: calc(10px + env(safe-area-inset-bottom)); box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+            margin-bottom: 20px; box-sizing: border-box; box-shadow: 0 5px 20px rgba(0,0,0,0.05);
         }
         .dock-item {
             width: 60px; height: 60px; background: linear-gradient(135deg, #f5f5f5, #e8e8e8); border-radius: 14px;
