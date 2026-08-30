@@ -1,0 +1,1071 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>iOS Style Profile Widget (Anime Edition - Ultimate)</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #fcfcfc;
+            --card-bg: #ffffff;
+            --dock-bg: rgba(235, 235, 235, 0.85);
+            --ios-bg: #f2f2f7;
+            --ios-list-bg: #ffffff;
+            --ios-separator: #c6c6c8;
+            --ios-blue: #007aff;
+            --ios-red: #ff3b30;
+            --sys-font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+            --font-scale: 1; 
+            --text-main: #333333;
+            --text-sub: #888888;
+            --preview-font-family: var(--sys-font-family);
+            --preview-font-scale: 1;
+            --preview-text-main: #000000;
+        }
+
+        html, body {
+            margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; 
+            touch-action: none; box-sizing: border-box;
+            font-family: var(--sys-font-family);
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body { display: flex; justify-content: center; background: #000; }
+
+        /* 主界面底层壁纸 */
+        .main-wallpaper {
+            position: fixed; 
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: var(--bg-color);
+            background-image: radial-gradient(#d5d5d5 2px, transparent 2px);
+            background-size: 38px 38px; 
+            background-position: center; 
+            z-index: -10; 
+        }
+        .main-wallpaper::after {
+            content: ''; position: absolute; bottom: 0; left: 0; width: 100%; height: 18%;
+            background: repeating-linear-gradient(45deg, transparent, transparent 15px, rgba(0,0,0,0.03) 15px, rgba(0,0,0,0.03) 30px);
+            z-index: -9;
+        }
+
+        .iphone-screen {
+            width: 100%; max-width: 400px; height: 100%; display: flex;
+            flex-direction: column; align-items: center; padding: 0; 
+            position: relative; overflow: hidden; z-index: 1;
+            background: transparent;
+        }
+
+        input[type="file"] { display: none; }
+
+        /* ========================================= */
+        /*           主屏幕网格布局 (完美对齐)          */
+        /* ========================================= */
+        .ios-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-auto-rows: min-content;
+            gap: 15px 12px;
+            width: 88%;
+            padding-top: 40px; 
+        }
+
+        .app-name, .widget-label {
+            font-size: calc(11px * var(--font-scale)); color: #555;
+            font-weight: 600; text-align: center; margin-top: 6px; white-space: nowrap;
+            min-height: 13px;
+        }
+
+        .widget-wrapper { display: flex; flex-direction: column; position: relative; }
+        
+        /* 1. 顶部超大条纹组件 */
+        .span-4 { grid-column: span 4; }
+        .widget-top {
+            height: 145px;
+            background: repeating-linear-gradient(to right, #f6f6f6, #f6f6f6 12px, #ffffff 12px, #ffffff 24px);
+            border-radius: 24px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            display: flex; flex-direction: column; justify-content: space-between; 
+            padding: 12px 12px 0 12px; box-sizing: border-box; overflow: hidden; position: relative;
+        }
+        .top-images { display: flex; justify-content: space-between; height: 95px; width: 100%; }
+        .top-images img { width: 31%; height: 100%; object-fit: cover; border-radius: 16px; cursor: pointer; transition: opacity 0.2s; }
+        .top-images img:active { opacity: 0.7; }
+        
+        .top-footer {
+            display: flex; justify-content: space-between; align-items: center; 
+            background: #e2e2e2; margin: 0 -12px; padding: 6px 15px 8px; border-radius: 0 0 24px 24px;
+        }
+        .top-footer .text { font-size: calc(11px * var(--font-scale)); color: #555; }
+        .top-footer .time { font-size: calc(26px * var(--font-scale)); font-weight: 400; color: #444; font-family: 'Times New Roman', serif; margin-top: -4px;}
+
+        /* 2. 耳机连线组件 */
+        .span-2 { grid-column: span 2; }
+        .widget-earbuds-container { display: flex; flex-direction: column; align-items: center; position: relative; margin-bottom: 2px; }
+        .widget-earbuds { height: 60px; width: 100%; position: relative; display: flex; justify-content: center; align-items: center; gap: 8px; }
+        .wire-svg { position: absolute; top: 15px; left: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
+        .wire-svg path { fill: none; stroke: #999; stroke-width: 1.2; }
+        .widget-earbuds img { width: 58px; height: 58px; object-fit: cover; border-radius: 50%; z-index: 2; position: relative; cursor: pointer; transition: transform 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .widget-earbuds img:active { transform: scale(0.95); }
+        .earbuds-text { font-size: calc(12px * var(--font-scale)); font-weight: 700; color: #777; margin-top: 15px; z-index: 2;}
+
+        /* 3. 随身听音乐组件 */
+        .widget-player {
+            height: 80px; background: #fff; border-radius: 18px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05), inset 0 0 0 1px #eee;
+            display: flex; flex-direction: column; padding: 8px; box-sizing: border-box;
+        }
+        .player-top-bar { display: flex; justify-content: space-between; font-size: 8px; color: #666; font-weight: bold; margin-bottom: 5px; padding: 0 2px; }
+        .player-icons { display: flex; gap: 4px; font-size: 9px; }
+        .player-content { display: flex; align-items: center; gap: 8px; height: 100%; border: 1.5px solid #666; border-radius: 6px; padding: 3px; }
+        .player-content img { width: 44px; height: 44px; object-fit: cover; border-radius: 4px; cursor: pointer; }
+        .player-content img:active { opacity: 0.7; }
+        .player-info { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        .player-title { font-size: calc(11px * var(--font-scale)); font-weight: bold; color: #333; line-height: 1.1; text-align: center; font-family: 'Times New Roman', serif; }
+        .player-controls { margin-top: 4px; display: flex; gap: 6px; font-size: 8px; color: #555; align-items: center; }
+        .player-progress { width: 100%; height: 2px; background: #ccc; border-radius: 2px; margin-top: 5px; position: relative; }
+        .player-progress::after { content:''; position:absolute; left:30%; top:-1.5px; width:5px; height:5px; background:#555; border-radius:50%; }
+
+        /* 4. 拍立得相片墙组件 (完全对齐之前的 165px 尺寸) */
+        .row-span-2 { grid-row: span 2; }
+        .widget-polaroid {
+            height: 165px; border-radius: 8px;
+            background-color: #fdfdfd;
+            background-image: radial-gradient(#e2e2e2 2px, transparent 2px);
+            background-size: 16px 16px; 
+            position: relative; overflow: hidden;
+             box-sizing: border-box;
+        }
+        /* 装饰元素 */
+        .p-bubble { position: absolute; top: 12px; left: 32%; background: #fff; border: 1px solid #ddd; border-radius: 12px; padding: 3px 8px; font-size: 9px; font-weight: bold; color: #555; z-index: 5; }
+        .p-star { position: absolute; color: #e6e6e6; }
+        .p-star-1 { top: 10px; left: 10px; font-size: 14px; }
+        .p-star-2 { top: 70px; left: 12px; font-size: 18px; }
+        .p-circle { position: absolute; width: 8px; height: 8px; background: #eaeaea; border-radius: 50%; }
+        .p-circle-1 { top: 10px; right: 20px; }
+        .p-circle-2 { bottom: 25px; left: 10px; width: 6px; height: 6px; }
+        .p-circle-3 { bottom: 15px; right: 10px; width: 6px; height: 6px; }
+        
+        /* 翅膀头像 */
+        .p-avatar-box { position: absolute; top: 15px; left: 18%; transform: translateX(-50%); width: 44px; height: 44px; z-index: 10; display: flex; justify-content: center; align-items: center;}
+        /* 纯 CSS 绘制的左右小翅膀 */
+        .p-avatar-box::before, .p-avatar-box::after { content: ''; position: absolute; top: 12px; width: 16px; height: 10px; border: 1.5px solid #d5d5d5; border-radius: 50%; border-bottom-color: transparent; border-right-color: transparent; z-index: 1;}
+        .p-avatar-box::before { left: -14px; transform: rotate(-35deg); }
+        .p-avatar-box::after { right: -14px; transform: scaleX(-1) rotate(-35deg); }
+        .p-avatar-img { width: 36px; height: 36px; border-radius: 50%; border: 1.5px dashed #ccc; background: #fff; object-fit: cover; z-index: 2; position: relative; cursor: pointer; }
+
+        /* 右侧相片 */
+        .p-photo-right {
+            position: absolute; top: 15px; right: 8px; width: 50%; height: 62%;
+            background: #fff; padding: 5px; border-radius: 2px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.06); transform: rotate(6deg); z-index: 2; box-sizing: border-box;
+        }
+        .p-photo-right img { width: 100%; height: 100%; object-fit: cover; cursor: pointer; }
+
+        /* 左侧相片 */
+        .p-photo-left {
+            position: absolute; bottom: 8px; left: 6px; width: 56%; height: 66%;
+            background: #fff; padding: 6px 6px 24px 6px; border-radius: 2px;
+            box-shadow: -2px 4px 12px rgba(0,0,0,0.08); transform: rotate(-5deg); z-index: 4; box-sizing: border-box;
+        }
+        .p-photo-left img { width: 100%; height: 100%; object-fit: cover; cursor: pointer; border: 1px dotted #eaeaea;}
+        .p-photo-left .p-text { position: absolute; bottom: 5px; left: 0; width: 100%; text-align: center; font-size: 11px; color: #444; font-family: Arial, sans-serif; }
+
+        /* 右下角创可贴 */
+        .p-bandaid {
+            position: absolute; bottom: 8px; right: 10px; width: 55px; height: 24px;
+            background: #f4f4f4; border-radius: 8px; z-index: 5; display: flex; justify-content: center; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); cursor: pointer;
+        }
+        .p-bandaid img { width: 18px; height: 18px; object-fit: cover; }
+
+        /* 5. App 图标样式 (干干净净的普通样式) */
+        .app-item { display: flex; flex-direction: column; align-items: center; cursor: pointer; height: 82px;}
+        .app-icon {
+            width: 60px; height: 60px; background: linear-gradient(135deg, #f5f5f5, #e8e8e8);
+            border-radius: 14px; display: flex; justify-content: center; align-items: center;
+            box-shadow: inset 0 2px 4px #fff, 0 3px 8px rgba(0,0,0,0.06); position: relative; overflow: hidden;
+        }
+        .app-icon-inner {
+            width: 44px; height: 32px; background: #666; border-radius: 6px;
+            display: flex; justify-content: center; align-items: center; font-size: 16px; color: #fff; z-index: 1;
+        }
+        .custom-icon-img { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; position: absolute; top: 0; left: 0; z-index: 10; display: none; }
+        .app-item:active .app-icon { filter: brightness(0.9); }
+
+        /* 搜索框 */
+        .search-pill {
+            margin-top: auto; margin-bottom: 25px;
+            background: rgba(180, 180, 180, 0.4); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+            padding: 7px 20px; border-radius: 20px;
+            font-size: calc(13px * var(--font-scale)); color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+            display: flex; align-items: center; gap: 6px; z-index: 10;
+        }
+
+        /* 底部 Dock 栏 */
+        .dock-container {
+            width: 90%; background: var(--dock-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border-radius: 35px; padding: 18px 15px; display: flex; justify-content: space-around;
+            margin-bottom: 20px; box-sizing: border-box; box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+        }
+        .dock-item {
+            width: 60px; height: 60px; background: linear-gradient(135deg, #f5f5f5, #e8e8e8); border-radius: 14px;
+            display: flex; justify-content: center; align-items: center; 
+            box-shadow: inset 0 2px 4px #fff, 0 3px 8px rgba(0,0,0,0.06); position: relative;
+        }
+        .dock-item-inner { width: 44px; height: 32px; background: #555; border-radius: 6px; display: flex; justify-content: center; align-items: center; color: #fff; font-size: 16px; z-index: 1;}
+
+
+        /* ========================================= */
+        /*           通用子页面样式 (原封不动保留)        */
+        /* ========================================= */
+        .sub-page { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: var(--ios-bg); z-index: 100; display: none; flex-direction: column; }
+        .sub-page.active { display: flex; }
+
+        .theme-header { height: 44px; padding-top: 45px; background-color: var(--ios-bg); display: flex; align-items: center; justify-content: center; position: relative; z-index: 101; flex-shrink: 0; }
+        .theme-header .back-btn { position: absolute; left: 15px; color: var(--text-main); font-size: 22px; display: flex; align-items: center; cursor: pointer; padding: 5px 20px 5px 0; }
+        .theme-header .back-btn:active { opacity: 0.5; }
+        
+        .header-title { font-size: calc(17px * var(--font-scale)); font-weight: 600; color: var(--text-main); }
+        .theme-large-title { font-size: calc(34px * var(--font-scale)); font-weight: 700; color: var(--text-main); padding: 5px 20px 15px 20px; background-color: var(--ios-bg); margin-top: -5px; flex-shrink: 0; }
+        .theme-content { flex: 1; overflow-y: auto; padding: 15px 15px 50px 15px; }
+
+        .ios-group { background-color: var(--ios-list-bg); border-radius: 12px; margin-bottom: 25px; overflow: hidden; }
+        .ios-item { display: flex; align-items: center; padding: 10px 15px; background-color: transparent; cursor: pointer; position: relative; }
+        .ios-item:active { background-color: #f2f2f7; }
+        .ios-item.no-active:active { background-color: transparent; cursor: default; }
+        .ios-item:not(:last-child)::after { content: ''; position: absolute; bottom: 0; left: 55px; right: 0; height: 0.5px; background-color: var(--ios-separator); }
+        .ios-item.full-line:not(:last-child)::after { left: 15px; }
+
+        .row-group { display: flex; flex-direction: row; padding: 0; }
+        .row-group .ios-item { flex: 1; justify-content: center; padding: 12px 10px; }
+        .row-group .ios-item::after { display: none !important; }
+        .vertical-divider { width: 0.5px; background-color: var(--ios-separator); }
+
+        .item-icon { width: 30px; height: 30px; border-radius: 8px; display: flex; justify-content: center; align-items: center; color: #fff; font-size: 16px; margin-right: 15px; flex-shrink: 0; }
+        .bg-wallpaper { background: #34c759; } .bg-font { background: #ff9500; } .bg-icon { background: #5856d6; } .bg-export { background: #007aff; } .bg-import { background: #32ade6; } .bg-bubble { background: #4cd964; } .bg-beautify { background: #af52de; }  
+        
+        .item-content { flex: 1; display: flex; flex-direction: column; justify-content: center; overflow: hidden; }
+        .item-title { font-size: calc(16px * var(--font-scale)); color: var(--text-main); margin-bottom: 2px; }
+        .item-subtitle { font-size: calc(12px * var(--font-scale)); color: var(--text-sub); }
+        .item-arrow { color: #c7c7cc; font-size: 14px; }
+        .item-center-text { width: 100%; text-align: center; font-size: calc(16px * var(--font-scale)); font-weight: 500; color: var(--text-main); }
+        .text-blue { color: var(--ios-blue); } .text-red { color: var(--ios-red); }
+
+        .wallpaper-preview { width: 60%; aspect-ratio: 9 / 19.5; margin: 20px auto; border-radius: 20px; border: 5px solid #fff; box-shadow: 0 10px 30px rgba(0,0,0,0.1); background-color: #d1d1d6; background-size: cover; background-position: center; display: flex; justify-content: center; align-items: center; cursor: pointer; position: relative; }
+        .wallpaper-preview i { font-size: 40px; color: rgba(255,255,255,0.7); text-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+        .wallpaper-hint { text-align: center; font-size: calc(13px * var(--font-scale)); color: var(--text-sub); margin-top: 10px; }
+
+        .font-preview-box { padding: 20px; text-align: center; margin-bottom: 20px; font-family: var(--preview-font-family); font-size: calc(20px * var(--preview-font-scale)); color: var(--preview-text-main); background: var(--ios-list-bg); border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); transition: all 0.2s; }
+        .ios-input-row { display: flex; align-items: center; width: 100%; gap: 10px; }
+        .ios-input-row input[type="text"] { flex: 1; min-width: 0; border: none; outline: none; background: transparent; font-size: calc(15px * var(--font-scale)); color: var(--text-main); font-family: var(--sys-font-family); }
+        .ios-input-row button { background: #e5e5ea; color: var(--ios-blue); border: none; padding: 6px 12px; border-radius: 15px; font-size: calc(14px * var(--font-scale)); font-weight: 600; cursor: pointer; flex-shrink: 0; font-family: var(--sys-font-family); }
+        .ios-input-text-label { font-size: calc(16px * var(--font-scale)); color: var(--text-main); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: var(--sys-font-family); }
+        input[type="range"] { flex: 1; width: 100%; margin: 0 10px; accent-color: #000; }
+        input[type="color"] { width: 30px; height: 30px; padding: 0; border: none; border-radius: 50%; overflow: hidden; cursor: pointer; background: transparent; flex-shrink: 0; }
+        input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+        input[type="color"]::-webkit-color-swatch { border: 1px solid #e5e5ea; border-radius: 50%; }
+
+        /* 弹窗 */
+        .ios-modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.4); z-index: 9999; display: none; justify-content: center; align-items: center; opacity: 0; transition: opacity 0.2s ease-in-out; font-family: var(--sys-font-family); }
+        .ios-modal-overlay.show { display: flex; opacity: 1; }
+        .ios-modal-box { width: 270px; background: rgba(255,255,255,0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-radius: 14px; text-align: center; overflow: hidden; box-shadow: 0 5px 20px rgba(0,0,0,0.15); transform: scale(1.1); transition: transform 0.2s ease-in-out; }
+        .ios-modal-overlay.show .ios-modal-box { transform: scale(1); }
+        .ios-modal-title { font-size: calc(17px * var(--font-scale)); font-weight: 600; padding: 20px 15px 5px; color: var(--text-main); }
+        .ios-modal-message { font-size: calc(13px * var(--font-scale)); color: var(--text-main); padding: 0 15px 15px; line-height: 1.4; }
+        .ios-modal-input { width: 230px; margin: 0 auto 15px; display: block; border: 1px solid rgba(0,0,0,0.2); border-radius: 6px; padding: 6px 10px; font-size: calc(14px * var(--font-scale)); box-sizing: border-box; outline: none; display: none; background: #fff; font-family: var(--sys-font-family); }
+        .ios-modal-buttons { display: flex; border-top: 0.5px solid rgba(0,0,0,0.2); }
+        .ios-modal-btn { flex: 1; padding: 12px 0; font-size: calc(17px * var(--font-scale)); font-weight: 500; color: var(--ios-blue); cursor: pointer; text-align: center; }
+        .ios-modal-btn.cancel { border-right: 0.5px solid rgba(0,0,0,0.2); font-weight: 400; display: none; }
+
+        [contenteditable="true"] { outline: none; border-bottom: 1px dashed transparent; transition: border-color 0.2s; cursor: text; }
+        [contenteditable="true"]:focus { border-bottom: 1px dashed #ccc; }
+
+        /* Icon 设置页面专用图标预览 */
+        .icon-preview-box { width: 34px; height: 34px; border-radius: 8px; background: linear-gradient(135deg, #f5f5f5, #e8e8e8); display: flex; justify-content: center; align-items: center; margin-right: 15px; overflow: hidden; position: relative;}
+        .icon-preview-fa { font-size: 16px; color: #555; }
+        .icon-preview-img { width: 100%; height: 100%; object-fit: cover; display: none; position: absolute; z-index: 2;}
+
+    </style>
+</head>
+<body>
+
+    <!-- 主界面底层壁纸 -->
+    <div class="main-wallpaper" id="mainWallpaper"></div>
+
+    <div class="iphone-screen">
+        <!-- 所有需要的隐藏文件上传接口 -->
+        <input type="file" id="sysWallpaperInput" accept="image/*">
+        <input type="file" id="topInput1" accept="image/*"> 
+        <input type="file" id="topInput2" accept="image/*"> 
+        <input type="file" id="topInput3" accept="image/*"> 
+        <input type="file" id="earbudInput1" accept="image/*">
+        <input type="file" id="earbudInput2" accept="image/*">
+        <input type="file" id="playerInput" accept="image/*">
+        
+        <!-- 新增：拍立得组件专用上传接口 -->
+        <input type="file" id="polaroidAvatarInput" accept="image/*">
+        <input type="file" id="polaroidRightInput" accept="image/*">
+        <input type="file" id="polaroidLeftInput" accept="image/*">
+        <input type="file" id="polaroidBandaidInput" accept="image/*">
+        <!-- 新增：应用图标上传接口 -->
+        <input type="file" id="appIconInput" accept="image/*">
+
+        <!-- 全新网格桌面内容 -->
+        <div class="ios-grid">
+            
+            <!-- 1. 顶部超大条纹组件 (3张图独立点击更换) -->
+            <div class="widget-wrapper span-4">
+                <div class="widget-top">
+                    <div class="top-images">
+                        <img id="topImg1" src="https://api.dicebear.com/7.x/notionists/svg?seed=Anime1&backgroundColor=d0d0d0" alt="img1">
+                        <img id="topImg2" src="https://api.dicebear.com/7.x/notionists/svg?seed=Anime2&backgroundColor=c0c0c0" alt="img2">
+                        <img id="topImg3" src="https://api.dicebear.com/7.x/notionists/svg?seed=Anime3&backgroundColor=b0b0b0" alt="img3">
+                    </div>
+                    <div class="top-footer">
+                        <div class="text" id="bioText" contenteditable="true" spellcheck="false">°✩+. life is about sunshine and fantasy .+</div>
+                        <div class="time" id="widgetTime">09:44</div>
+                    </div>
+                </div>
+                <div class="widget-label"></div>
+            </div>
+
+            <!-- 2. 耳机连线组件 -->
+            <div class="widget-wrapper span-2">
+                <div class="widget-earbuds-container">
+                    <div class="widget-earbuds">
+                        <svg class="wire-svg" viewBox="0 0 100 60" preserveAspectRatio="none">
+                            <path d="M 6,20 C -5,55 35,60 50,60" />
+                            <path d="M 94,20 C 105,55 65,60 50,60" />
+                        </svg>
+                        <img id="earbudImg1" src="https://api.dicebear.com/7.x/notionists/svg?seed=Boy1&backgroundColor=f0f0f0" alt="earbud1">
+                        <img id="earbudImg2" src="https://api.dicebear.com/7.x/notionists/svg?seed=Boy2&backgroundColor=e0e0e0" alt="earbud2">
+                    </div>
+                    <div class="earbuds-text" id="earbudText" contenteditable="true">Oath is a lie</div>
+                </div>
+            </div>
+            
+            <!-- 核心 App 1, 2 -->
+            <div class="app-item" id="app-settings">
+                <div class="app-icon"><div class="app-icon-inner"><i class="fa-solid fa-gear"></i></div><img class="custom-icon-img" /></div>
+                <div class="app-name">设置</div>
+            </div>
+            <div class="app-item" id="app-theme">
+                <div class="app-icon"><div class="app-icon-inner"><i class="fa-solid fa-palette"></i></div><img class="custom-icon-img" /></div>
+                <div class="app-name">主题</div>
+            </div>
+
+            <!-- 3. 随身听音乐组件 -->
+            <div class="widget-wrapper span-2">
+                <div class="widget-player">
+                    <div class="player-top-bar"><span>New Playing</span><div class="player-icons"><i class="fa-solid fa-heart"></i> <i class="fa-solid fa-battery-half"></i> <i class="fa-solid fa-ellipsis"></i></div></div>
+                    <div class="player-content">
+                        <img id="playerImg" src="https://api.dicebear.com/7.x/notionists/svg?seed=PlayerCover&backgroundColor=d8d8d8" alt="cover">
+                        <div class="player-info">
+                            <div class="player-title" id="playerText" contenteditable="true">Sweetie<br>kitty</div>
+                            <div class="player-controls"><i class="fa-solid fa-backward-step"></i><i class="fa-solid fa-circle-pause"></i><i class="fa-solid fa-forward-step"></i><i class="fa-solid fa-volume-high"></i></div>
+                            <div class="player-progress"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="widget-label"></div>
+            </div>
+            
+            <!-- 核心 App 3, 4 -->
+            <div class="app-item" id="app-chat">
+                <div class="app-icon"><div class="app-icon-inner"><i class="fa-solid fa-comment-dots"></i></div><img class="custom-icon-img" /></div>
+                <div class="app-name">聊天</div>
+            </div>
+            <div class="app-item" id="app-role">
+                <div class="app-icon"><div class="app-icon-inner"><i class="fa-solid fa-user-astronaut"></i></div><img class="custom-icon-img" /></div>
+                <div class="app-name">角色</div>
+            </div>
+
+            <!-- 补充占位 App 5, 6 -->
+            <div class="app-item" id="app-weather">
+                <div class="app-icon"><div class="app-icon-inner"><i class="fa-solid fa-cloud-sun"></i></div><img class="custom-icon-img" /></div>
+                <div class="app-name">天气</div>
+            </div>
+            <div class="app-item" id="app-clock">
+                <div class="app-icon"><div class="app-icon-inner"><i class="fa-regular fa-clock"></i></div><img class="custom-icon-img" /></div>
+                <div class="app-name">时钟</div>
+            </div>
+            
+            <!-- 4. 拍立得相片墙组件 (尺寸与原分屏正方形完全对齐) -->
+            <div class="widget-wrapper span-2 row-span-2">
+                <div class="widget-polaroid">
+                    <!-- 背景装饰 -->
+                    <div class="p-bubble">o•ᴗ•o</div>
+                    <i class="fa-solid fa-star p-star p-star-1"></i>
+                    <i class="fa-solid fa-star p-star p-star-2"></i>
+                    <div class="p-circle p-circle-1"></div>
+                    <div class="p-circle p-circle-2"></div>
+                    <div class="p-circle p-circle-3"></div>
+                    
+                    <!-- 翅膀头像 -->
+                    <div class="p-avatar-box">
+                        <img class="p-avatar-img" id="polaroidAvatarImg" src="https://api.dicebear.com/7.x/notionists/svg?seed=angel&backgroundColor=ffffff" alt="avatar">
+                    </div>
+
+                    <!-- 右侧读书相片 -->
+                    <div class="p-photo-right">
+                        <img id="polaroidRightImg" src="https://api.dicebear.com/7.x/notionists/svg?seed=book&backgroundColor=ffffff" alt="right photo">
+                    </div>
+
+                    <!-- 左侧拿纸相片 + 文字 -->
+                    <div class="p-photo-left">
+                        <img id="polaroidLeftImg" src="https://api.dicebear.com/7.x/notionists/svg?seed=paper&backgroundColor=ffffff" alt="left photo">
+                        <div class="p-text" id="polaroidText" contenteditable="true" spellcheck="false">i luv u &lt;3...</div>
+                    </div>
+
+                    <!-- 右下角创可贴小图 -->
+                    <div class="p-bandaid">
+                        <img id="polaroidBandaidImg" src="https://api.dicebear.com/7.x/notionists/svg?seed=smile&backgroundColor=transparent" alt="bandaid">
+                    </div>
+                </div>
+                <div class="widget-label"></div>
+            </div>
+
+            <!-- 补充占位 App 7, 8 -->
+            <div class="app-item" id="app-weibo">
+                <div class="app-icon"><div class="app-icon-inner"><i class="fa-brands fa-weibo"></i></div><img class="custom-icon-img" /></div>
+                <div class="app-name">微博</div>
+            </div>
+            <div class="app-item" id="app-album">
+                <div class="app-icon"><div class="app-icon-inner"><i class="fa-solid fa-photo-film"></i></div><img class="custom-icon-img" /></div>
+                <div class="app-name">相册</div>
+            </div>
+
+        </div>
+
+        <!-- 搜索胶囊 -->
+        <div class="search-pill">
+            <i class="fa-solid fa-magnifying-glass"></i> 搜索
+        </div>
+        
+        <!-- 底部 Dock 栏 -->
+        <div class="dock-container">
+            <div class="dock-item" id="dock-world" title="世界书">
+                <div class="dock-item-inner"><i class="fa-solid fa-book-atlas"></i></div><img class="custom-icon-img" />
+            </div>
+            <div class="dock-item" id="dock-music" title="网易云">
+                <div class="dock-item-inner"><i class="fa-solid fa-music"></i></div><img class="custom-icon-img" />
+            </div>
+            <div class="dock-item" id="dock-camera" title="相机">
+                <div class="dock-item-inner"><i class="fa-solid fa-camera-retro"></i></div><img class="custom-icon-img" />
+            </div>
+            <div class="dock-item" id="dock-photo" title="照片">
+                <div class="dock-item-inner"><i class="fa-regular fa-images"></i></div><img class="custom-icon-img" />
+            </div>
+        </div>
+
+        <!-- ========================================= -->
+        <!--             主 题 设 置 首 页              -->
+        <!-- ========================================= -->
+        <div class="sub-page" id="themePage">
+            <div class="theme-header">
+                <div class="back-btn" onclick="hidePage('themePage')"><i class="fa-solid fa-chevron-left"></i></div>
+            </div>
+            <div class="theme-large-title">主题设置</div>
+            <div class="theme-content">
+                <div class="ios-group">
+                    <div class="ios-item" onclick="showPage('wallpaperPage')">
+                        <div class="item-icon bg-wallpaper"><i class="fa-solid fa-image"></i></div>
+                        <div class="item-content"><div class="item-title">壁纸设置</div><div class="item-subtitle">更换主屏幕的背景壁纸</div></div>
+                        <div class="item-arrow"><i class="fa-solid fa-chevron-right"></i></div>
+                    </div>
+                    <div class="ios-item" onclick="openFontPage()">
+                        <div class="item-icon bg-font"><i class="fa-solid fa-font"></i></div>
+                        <div class="item-content"><div class="item-title">字体设置</div><div class="item-subtitle">调整全局字体样式、颜色与字号</div></div>
+                        <div class="item-arrow"><i class="fa-solid fa-chevron-right"></i></div>
+                    </div>
+                    <!-- 开启图标设置入口 -->
+                    <div class="ios-item" onclick="openIconPage()">
+                        <div class="item-icon bg-icon"><i class="fa-solid fa-shapes"></i></div>
+                        <div class="item-content"><div class="item-title">图标设置</div><div class="item-subtitle">自定义所有应用程序的图标外观</div></div>
+                        <div class="item-arrow"><i class="fa-solid fa-chevron-right"></i></div>
+                    </div>
+                    <!-- 移除了原有的组件设置 -->
+                </div>
+                <!-- 1. 给导出按钮加 onclick="exportDesktop()" -->
+
+<!-- 正确被包裹在 ios-group 里的导出和导入 -->
+<div class="ios-group">
+    <div class="ios-item" onclick="exportDesktop()">
+        <div class="item-icon bg-export"><i class="fa-solid fa-arrow-up-right-from-square"></i></div>
+        <div class="item-content"><div class="item-title">导出桌面</div><div class="item-subtitle">备份当前桌面布局及各项美化配置</div></div>
+        <div class="item-arrow"><i class="fa-solid fa-chevron-right"></i></div>
+    </div>
+    <div class="ios-item" onclick="document.getElementById('importJsonInput').click()">
+        <div class="item-icon bg-import"><i class="fa-solid fa-download"></i></div>
+        <div class="item-content"><div class="item-title">导入桌面</div><div class="item-subtitle">恢复或应用他人的完整桌面美化配置</div></div>
+        <div class="item-arrow"><i class="fa-solid fa-chevron-right"></i></div>
+    </div>
+</div>
+<!-- 隐藏的导入接口 -->
+<input type="file" id="importJsonInput" accept=".json" style="display: none;">
+
+                
+                <div class="ios-group">
+                    <div class="ios-item">
+                        <div class="item-icon bg-bubble"><i class="fa-solid fa-comment"></i></div>
+                        <div class="item-content"><div class="item-title">气泡设置</div><div class="item-subtitle">自定义聊天界面的对话气泡样式</div></div>
+                        <div class="item-arrow"><i class="fa-solid fa-chevron-right"></i></div>
+                    </div>
+                    <div class="ios-item">
+                        <div class="item-icon bg-beautify"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+                        <div class="item-content"><div class="item-title">美化设置</div><div class="item-subtitle">调整聊天界面的背景与整体色彩UI</div></div>
+                        <div class="item-arrow"><i class="fa-solid fa-chevron-right"></i></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========================================= -->
+        <!--              图 标 设 置 页 面              -->
+        <!-- ========================================= -->
+        <div class="sub-page" id="iconPage" style="z-index: 102;">
+            <div class="theme-header">
+                <div class="back-btn" onclick="hidePage('iconPage')"><i class="fa-solid fa-chevron-left"></i></div>
+                <div class="header-title">图标设置</div>
+            </div>
+            <div class="theme-content">
+                <div style="font-size: 13px; color: var(--text-sub); margin-bottom: 15px; padding: 0 5px;">点击列表项可上传图片替换原生图标。</div>
+                <div class="ios-group" id="iconSettingsList">
+                    <!-- 列表由 JS 动态生成填充 -->
+                </div>
+                <div class="ios-group">
+                    <div class="ios-item" onclick="restoreDefaultIcons()">
+                        <div class="item-content"><div class="item-center-text text-red" style="font-weight: 600;">恢复默认图标</div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========================================= -->
+        <!--              壁 纸 设 置 页 面              -->
+        <!-- ========================================= -->
+        <div class="sub-page" id="wallpaperPage" style="z-index: 102;">
+            <div class="theme-header">
+                <div class="back-btn" onclick="hidePage('wallpaperPage')"><i class="fa-solid fa-chevron-left"></i></div>
+                <div class="header-title">壁纸设置</div>
+            </div>
+            <div class="theme-content">
+                <div class="wallpaper-preview" id="wallpaperPreview" onclick="document.getElementById('sysWallpaperInput').click()">
+                    <i class="fa-solid fa-plus"></i>
+                </div>
+                <div class="wallpaper-hint">点击上方区域更换主桌面壁纸</div>
+            </div>
+        </div>
+
+        <!-- ========================================= -->
+        <!--              字 体 设 置 页 面              -->
+        <!-- ========================================= -->
+        <div class="sub-page" id="fontPage" style="z-index: 102;">
+            <div class="theme-header">
+                <div class="back-btn" onclick="hidePage('fontPage')"><i class="fa-solid fa-chevron-left"></i></div>
+                <div class="header-title">字体设置</div>
+            </div>
+            <div class="theme-content">
+                <div class="font-preview-box">
+                    <div>12:34</div>
+                    <div style="font-size: 0.6em; margin-top:5px;">心之所向，素履以往。<br>ABCDEFGHIJKLMNOPQ</div>
+                </div>
+                <div class="ios-group row-group">
+                    <div class="ios-item" onclick="openPresetPage()">
+                        <div class="item-center-text text-blue">选择预设</div>
+                    </div>
+                    <div class="vertical-divider"></div>
+                    <div class="ios-item" onclick="savePreset()">
+                        <div class="item-center-text text-blue">保存预设</div>
+                    </div>
+                </div>
+                <div class="ios-group">
+                    <div class="ios-item no-active full-line">
+                        <div class="ios-input-row">
+                            <i class="fa-solid fa-link" style="color: #8e8e93;"></i>
+                            <input type="text" id="fontUrlInput" placeholder="输入字体 URL (如.ttf)">
+                            <button onclick="applyFontUrl()">加载</button>
+                        </div>
+                    </div>
+                    <div class="ios-item no-active full-line">
+                        <input type="file" id="fontFileInput" accept=".ttf,.otf,.woff,.woff2">
+                        <div class="ios-input-row">
+                            <i class="fa-solid fa-folder-open" style="color: #8e8e93;"></i>
+                            <span class="ios-input-text-label" id="fontFileName" style="color: var(--text-sub);">加载本地文件...</span>
+                            <button onclick="document.getElementById('fontFileInput').click()">选择</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="ios-group">
+                    <div class="ios-item no-active full-line">
+                        <i class="fa-solid fa-a" style="font-size:12px; color:var(--text-main);"></i>
+                        <input type="range" id="fontSizeSlider" min="0.6" max="1.5" step="0.05" value="1">
+                        <i class="fa-solid fa-a" style="font-size:20px; color:var(--text-main);"></i>
+                    </div>
+                    <div class="ios-item no-active full-line">
+                        <div class="ios-input-row">
+                            <div class="ios-input-text-label" style="flex: none; width: 70px;">字体颜色</div>
+                            <input type="text" id="fontColorText" placeholder="#000000" style="text-transform: uppercase;">
+                            <input type="color" id="fontColorPicker" value="#000000">
+                        </div>
+                    </div>
+                </div>
+                <div class="ios-group">
+                    <div class="ios-item" onclick="restoreDefaultFont()">
+                        <div class="item-content"><div class="item-center-text">恢复默认字体</div></div>
+                    </div>
+                </div>
+                <div class="ios-group" style="margin-top: 30px;">
+                    <div class="ios-item" onclick="applyFontGlobally()">
+                        <div class="item-content"><div class="item-center-text text-red" style="font-weight: bold;">全局应用</div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 自定义 iOS 原生弹窗 -->
+    <div class="ios-modal-overlay" id="iosModal">
+        <div class="ios-modal-box">
+            <div class="ios-modal-title" id="iosModalTitle">提示</div>
+            <div class="ios-modal-message" id="iosModalMessage"></div>
+            <input type="text" class="ios-modal-input" id="iosModalInput">
+            <div class="ios-modal-buttons">
+                <div class="ios-modal-btn cancel" id="iosModalCancel">取消</div>
+                <div class="ios-modal-btn confirm" id="iosModalConfirm">确定</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==== 顶部组件时间动态更新逻辑 ====
+        setInterval(() => {
+            const now = new Date();
+            document.getElementById('widgetTime').innerText = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+        }, 1000);
+
+        // ==== 自定义 iOS 弹窗 API ====
+        function showIosAlert(title, message) {
+            return new Promise(resolve => {
+                document.getElementById('iosModalTitle').innerText = title;
+                document.getElementById('iosModalMessage').innerText = message;
+                document.getElementById('iosModalInput').style.display = 'none';
+                document.getElementById('iosModalCancel').style.display = 'none';
+                document.getElementById('iosModalConfirm').style.display = 'block';
+                document.getElementById('iosModal').classList.add('show');
+                document.getElementById('iosModalConfirm').onclick = () => { document.getElementById('iosModal').classList.remove('show'); resolve(); };
+            });
+        }
+        function showIosPrompt(title, message, placeholder = '') {
+            return new Promise(resolve => {
+                document.getElementById('iosModalTitle').innerText = title;
+                document.getElementById('iosModalMessage').innerText = message;
+                const input = document.getElementById('iosModalInput');
+                input.style.display = 'block'; input.value = ''; input.placeholder = placeholder;
+                document.getElementById('iosModalCancel').style.display = 'block';
+                document.getElementById('iosModalConfirm').style.display = 'block';
+                document.getElementById('iosModal').classList.add('show');
+                input.focus();
+                document.getElementById('iosModalCancel').onclick = () => { document.getElementById('iosModal').classList.remove('show'); resolve(null); };
+                document.getElementById('iosModalConfirm').onclick = () => { document.getElementById('iosModal').classList.remove('show'); resolve(input.value); };
+            });
+        }
+
+        // ==== 数据库配置 ====
+        localforage.config({ name: 'WidgetAppDB', storeName: 'userdata' });
+
+        // ==== 页面路由 ====
+        function showPage(pageId) { document.getElementById(pageId).classList.add('active'); }
+        function hidePage(pageId) { document.getElementById(pageId).classList.remove('active'); }
+        
+        // 绑定“主题”APP的点击事件，使其打开主题页
+        document.getElementById('app-theme').addEventListener('click', () => showPage('themePage'));
+
+        // ==== 通用图片上传绑定封装 ====
+        function setupImageUpload(imgId, inputId, dbKey) {
+            document.getElementById(imgId).addEventListener('click', () => document.getElementById(inputId).click());
+            document.getElementById(inputId).addEventListener('change', e => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = ev => {
+                        const base64 = ev.target.result;
+                        document.getElementById(imgId).src = base64;
+                        localforage.setItem(dbKey, base64);
+                    };
+                    reader.readAsDataURL(file); 
+                }
+            });
+        }
+
+        // 绑定原来组件的单图
+        setupImageUpload('topImg1', 'topInput1', 'dbTopImg1');
+        setupImageUpload('topImg2', 'topInput2', 'dbTopImg2');
+        setupImageUpload('topImg3', 'topInput3', 'dbTopImg3');
+        setupImageUpload('earbudImg1', 'earbudInput1', 'dbEarbudImg1');
+        setupImageUpload('earbudImg2', 'earbudInput2', 'dbEarbudImg2');
+        setupImageUpload('playerImg', 'playerInput', 'dbPlayerImg');
+        
+        // 绑定新拍立得组件的4张图
+        setupImageUpload('polaroidAvatarImg', 'polaroidAvatarInput', 'dbPolaroidAvatar');
+        setupImageUpload('polaroidRightImg', 'polaroidRightInput', 'dbPolaroidRight');
+        setupImageUpload('polaroidLeftImg', 'polaroidLeftInput', 'dbPolaroidLeft');
+        setupImageUpload('polaroidBandaidImg', 'polaroidBandaidInput', 'dbPolaroidBandaid');
+
+        // 绑定文本编辑
+        document.querySelectorAll('[contenteditable="true"]').forEach(el => {
+            el.addEventListener('blur', function() { localforage.setItem(this.id, this.innerText); });
+            el.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); this.blur(); } });
+        });
+
+        // ==== 底层壁纸逻辑 ====
+        document.getElementById('sysWallpaperInput').addEventListener('change', e => {
+            const file = e.target.files[0];
+            if(file) {
+                const reader = new FileReader();
+                reader.onload = ev => {
+                    const base64 = ev.target.result;
+                    const bgLayer = document.getElementById('mainWallpaper');
+                    bgLayer.style.backgroundImage = `url('${base64}')`;
+                    bgLayer.style.backgroundSize = 'cover'; 
+                    document.getElementById('wallpaperPreview').style.backgroundImage = `url('${base64}')`;
+                    document.querySelector('#wallpaperPreview i').style.display = 'none';
+                    localforage.setItem('sysWallpaperImg', base64);
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // ==========================================
+        //         全新：图 标 设 置 逻 辑
+        // ==========================================
+        const appList = [
+            { id: 'app-settings', name: '设置', iconFa: 'fa-gear' },
+            { id: 'app-theme', name: '主题', iconFa: 'fa-palette' },
+            { id: 'app-chat', name: '聊天', iconFa: 'fa-comment-dots' },
+            { id: 'app-role', name: '角色', iconFa: 'fa-user-astronaut' },
+            { id: 'app-weather', name: '天气', iconFa: 'fa-cloud-sun' },
+            { id: 'app-clock', name: '时钟', iconFa: 'fa-clock' },
+            { id: 'app-weibo', name: '微博', iconFa: 'fa-weibo' },
+            { id: 'app-album', name: '相册', iconFa: 'fa-photo-film' },
+            { id: 'dock-world', name: '世界书 (底栏)', iconFa: 'fa-book-atlas' },
+            { id: 'dock-music', name: '网易云 (底栏)', iconFa: 'fa-music' },
+            { id: 'dock-camera', name: '相机 (底栏)', iconFa: 'fa-camera-retro' },
+            { id: 'dock-photo', name: '照片 (底栏)', iconFa: 'fa-images' }
+        ];
+
+        let customIconsDB = {}; 
+        let currentEditingAppId = null;
+
+        function openIconPage() {
+            const container = document.getElementById('iconSettingsList');
+            container.innerHTML = '';
+            appList.forEach(app => {
+                const hasCustom = customIconsDB[app.id];
+                const html = `
+                    <div class="ios-item" onclick="triggerIconUpload('${app.id}')">
+                        <div class="icon-preview-box">
+                            <i class="fa-solid ${app.iconFa} icon-preview-fa" style="display: ${hasCustom ? 'none' : 'block'};"></i>
+                            <img class="icon-preview-img" src="${hasCustom || ''}" style="display: ${hasCustom ? 'block' : 'none'};">
+                        </div>
+                        <div class="item-content">
+                            <div class="item-title">${app.name}</div>
+                            <div class="item-subtitle">${hasCustom ? '已自定义' : '默认图标'}</div>
+                        </div>
+                        <div class="item-arrow"><i class="fa-solid fa-chevron-right"></i></div>
+                    </div>`;
+                container.insertAdjacentHTML('beforeend', html);
+            });
+            showPage('iconPage');
+        }
+
+        function triggerIconUpload(appId) {
+            currentEditingAppId = appId;
+            document.getElementById('appIconInput').click();
+        }
+
+        document.getElementById('appIconInput').addEventListener('change', e => {
+            const file = e.target.files[0];
+            if(file && currentEditingAppId) {
+                const reader = new FileReader();
+                reader.onload = ev => {
+                    const base64 = ev.target.result;
+                    customIconsDB[currentEditingAppId] = base64;
+                    localforage.setItem('dbCustomIcons', customIconsDB);
+                    applyIconToDom(currentEditingAppId, base64);
+                    openIconPage(); // 刷新列表
+                };
+                reader.readAsDataURL(file);
+            }
+            e.target.value = ''; // 允许重复选择同文件
+        });
+
+        function applyIconToDom(appId, base64) {
+            const appEl = document.getElementById(appId);
+            if(appEl) {
+                const innerFa = appEl.querySelector('.app-icon-inner, .dock-item-inner');
+                const customImg = appEl.querySelector('.custom-icon-img');
+                if(base64) {
+                    if(innerFa) innerFa.style.visibility = 'hidden';
+                    if(customImg) { customImg.src = base64; customImg.style.display = 'block'; }
+                } else {
+                    if(innerFa) innerFa.style.visibility = 'visible';
+                    if(customImg) { customImg.src = ''; customImg.style.display = 'none'; }
+                }
+            }
+        }
+
+        function restoreDefaultIcons() {
+            customIconsDB = {};
+            localforage.removeItem('dbCustomIcons');
+            appList.forEach(app => applyIconToDom(app.id, null));
+            openIconPage();
+            showIosAlert('成功', '所有图标已恢复为默认状态。');
+        }
+
+
+        // ==========================================
+        //      初始化读取数据库并应用所有设置
+        // ==========================================
+        let globalFontState = { scale: "1", color: "#333333", customFont: null };
+        let draftFontState = { scale: "1", color: "#333333", customFont: null };
+        const rootStyle = document.documentElement.style;
+        const defaultFontFamily = '-apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif';
+
+        async function loadGlobalSettings() {
+            // 1. 恢复所有单图 (包括拍立得的新图)
+            const imgMappings = [
+                { id: 'topImg1', key: 'dbTopImg1' }, { id: 'topImg2', key: 'dbTopImg2' }, { id: 'topImg3', key: 'dbTopImg3' },
+                { id: 'earbudImg1', key: 'dbEarbudImg1' }, { id: 'earbudImg2', key: 'dbEarbudImg2' }, { id: 'playerImg', key: 'dbPlayerImg' },
+                { id: 'polaroidAvatarImg', key: 'dbPolaroidAvatar' }, { id: 'polaroidRightImg', key: 'dbPolaroidRight' },
+                { id: 'polaroidLeftImg', key: 'dbPolaroidLeft' }, { id: 'polaroidBandaidImg', key: 'dbPolaroidBandaid' }
+            ];
+            for(let map of imgMappings){
+                const b64 = await localforage.getItem(map.key);
+                if(b64) document.getElementById(map.id).src = b64;
+            }
+            
+            // 2. 恢复文本
+            const textKeys = ['bioText', 'earbudText', 'playerText', 'polaroidText'];
+            for (let k of textKeys) {
+                const txt = await localforage.getItem(k);
+                if (txt) document.getElementById(k).innerText = txt;
+            }
+
+            // 3. 恢复底层壁纸
+            const sysWallpaper = await localforage.getItem('sysWallpaperImg');
+            if(sysWallpaper) {
+                const bgLayer = document.getElementById('mainWallpaper');
+                bgLayer.style.backgroundImage = `url('${sysWallpaper}')`;
+                bgLayer.style.backgroundSize = 'cover';
+                document.getElementById('wallpaperPreview').style.backgroundImage = `url('${sysWallpaper}')`;
+                document.querySelector('#wallpaperPreview i').style.display = 'none'; 
+            }
+
+            // 4. 恢复图标
+            const savedIcons = await localforage.getItem('dbCustomIcons');
+            if(savedIcons) {
+                customIconsDB = savedIcons;
+                for(let appId in customIconsDB) {
+                    applyIconToDom(appId, customIconsDB[appId]);
+                }
+            }
+
+            // 5. 恢复字体
+            const savedScale = await localforage.getItem('sysFontScale');
+            if(savedScale) globalFontState.scale = savedScale;
+            const savedColor = await localforage.getItem('sysFontColor');
+            if(savedColor) globalFontState.color = savedColor;
+            const fontData = await localforage.getItem('sysCustomFont');
+            if(fontData) globalFontState.customFont = fontData;
+
+            await applyStateToGlobal(globalFontState);
+        }
+
+        async function applyStateToGlobal(state) {
+            rootStyle.setProperty('--font-scale', state.scale);
+            rootStyle.setProperty('--text-main', state.color);
+            if(state.customFont) {
+                try {
+                    const fontName = 'GlobalFont_' + Date.now(); 
+                    const font = new FontFace(fontName, state.customFont.type === 'url' ? `url(${state.customFont.source})` : state.customFont.source);
+                    const loadedFont = await font.load();
+                    document.fonts.add(loadedFont);
+                    rootStyle.setProperty('--sys-font-family', `"${fontName}", ${defaultFontFamily}`);
+                } catch (e) {
+                    console.log("全局字体加载失败", e);
+                }
+            } else {
+                rootStyle.setProperty('--sys-font-family', defaultFontFamily);
+            }
+        }
+
+        async function applyStateToPreview(state) {
+            rootStyle.setProperty('--preview-font-scale', state.scale);
+            rootStyle.setProperty('--preview-text-main', state.color);
+            
+            document.getElementById('fontSizeSlider').value = state.scale;
+            document.getElementById('fontColorPicker').value = state.color;
+            document.getElementById('fontColorText').value = state.color;
+
+            if(state.customFont) {
+                try {
+                    const fontName = 'PreviewFont_' + Date.now(); 
+                    const font = new FontFace(fontName, state.customFont.type === 'url' ? `url(${state.customFont.source})` : state.customFont.source);
+                    const loadedFont = await font.load();
+                    document.fonts.add(loadedFont);
+                    rootStyle.setProperty('--preview-font-family', `"${fontName}", ${defaultFontFamily}`);
+                    
+                    if(state.customFont.type === 'url') { document.getElementById('fontUrlInput').value = state.customFont.source; } 
+                    else { document.getElementById('fontFileName').innerText = "已加载本地文件"; document.getElementById('fontFileName').style.color = "var(--text-main)"; }
+                } catch (e) { console.log(e); showIosAlert("错误", "字体加载失败，请检查文件。"); }
+            } else {
+                rootStyle.setProperty('--preview-font-family', defaultFontFamily);
+                document.getElementById('fontUrlInput').value = "";
+                document.getElementById('fontFileName').innerText = "加载本地字体文件...";
+                document.getElementById('fontFileName').style.color = "var(--text-sub)";
+            }
+        }
+
+        function openFontPage() {
+            draftFontState = JSON.parse(JSON.stringify(globalFontState));
+            if(globalFontState.customFont && globalFontState.customFont.type === 'file') draftFontState.customFont.source = globalFontState.customFont.source; 
+            applyStateToPreview(draftFontState);
+            showPage('fontPage');
+        }
+
+        document.getElementById('fontSizeSlider').addEventListener('input', e => { draftFontState.scale = e.target.value; applyStateToPreview(draftFontState); });
+        function updateDraftColor(color) { draftFontState.color = color; applyStateToPreview(draftFontState); }
+        document.getElementById('fontColorPicker').addEventListener('input', e => updateDraftColor(e.target.value));
+        document.getElementById('fontColorText').addEventListener('change', e => {
+            if(/^#[0-9A-Fa-f]{6}$/i.test(e.target.value) || /^#[0-9A-Fa-f]{3}$/i.test(e.target.value)) updateDraftColor(e.target.value);
+            else showIosAlert("提示", "请输入有效的 Hex 颜色值！");
+        });
+
+        async function applyFontUrl() {
+            const url = document.getElementById('fontUrlInput').value.trim();
+            if(url) { draftFontState.customFont = { type: 'url', source: url }; await applyStateToPreview(draftFontState); showIosAlert("成功", "已加载外部字体（草稿生效）。"); }
+        }
+        document.getElementById('fontFileInput').addEventListener('change', e => {
+            const file = e.target.files[0];
+            if(file) {
+                const reader = new FileReader();
+                reader.onload = async (ev) => { draftFontState.customFont = { type: 'file', source: ev.target.result }; await applyStateToPreview(draftFontState); showIosAlert("成功", "已加载本地字体文件（草稿生效）。"); };
+                reader.readAsArrayBuffer(file);
+            }
+        });
+        function restoreDefaultFont() { draftFontState = { scale: "1", color: "#333333", customFont: null }; applyStateToPreview(draftFontState); }
+
+        async function applyFontGlobally() {
+            globalFontState = JSON.parse(JSON.stringify(draftFontState));
+            if(draftFontState.customFont && draftFontState.customFont.type === 'file') globalFontState.customFont.source = draftFontState.customFont.source;
+            await applyStateToGlobal(globalFontState);
+            localforage.setItem('sysFontScale', globalFontState.scale);
+            localforage.setItem('sysFontColor', globalFontState.color);
+            localforage.setItem('sysCustomFont', globalFontState.customFont);
+            showIosAlert("成功", "已成功应用到全局页面！");
+        }
+
+        async function savePreset() {
+            const name = await showIosPrompt("保存预设", "请输入字体预设名称", "例如: 极简黑");
+            if(!name || name.trim() === "") return;
+            let presets = await localforage.getItem('fontPresets') || [];
+            presets.push({ id: Date.now().toString(), name: name.trim(), state: { scale: draftFontState.scale, color: draftFontState.color, customFont: draftFontState.customFont } });
+            await localforage.setItem('fontPresets', presets);
+            showIosAlert("成功", "预设保存成功！");
+        }
+
+        async function openPresetPage() {
+            let presets = await localforage.getItem('fontPresets') || [];
+            if(presets.length === 0) { showIosAlert("选择预设", "暂无保存的预设"); return; }
+            let html = '<div style="max-height: 200px; overflow-y: auto; text-align: left; margin-top: 10px; border-top: 0.5px solid rgba(0,0,0,0.1);">';
+            presets.forEach((preset, index) => {
+                html += `<div style="padding: 12px 10px; border-bottom: 0.5px solid rgba(0,0,0,0.1); cursor: pointer;" onclick="selectPreset(${index})">
+                        <div style="font-size: calc(15px * var(--font-scale)); font-weight: 500; color: var(--text-main); margin-bottom: 4px;">${preset.name}</div>
+                        <div style="font-size: calc(11px * var(--font-scale)); color: var(--text-sub);">字号: ${preset.state.scale} | 颜色: <span style="display:inline-block; width:10px; height:10px; background:${preset.state.color}; border-radius:50%; border:1px solid #ccc; vertical-align:middle;"></span> ${preset.state.color}</div>
+                    </div>`;
+            });
+            html += '</div>';
+            document.getElementById('iosModalTitle').innerText = "选择预设";
+            document.getElementById('iosModalMessage').innerHTML = html; 
+            document.getElementById('iosModalInput').style.display = 'none';
+            document.getElementById('iosModalCancel').style.display = 'block';
+            document.getElementById('iosModalConfirm').style.display = 'none'; 
+            document.getElementById('iosModal').classList.add('show');
+            document.getElementById('iosModalCancel').onclick = () => document.getElementById('iosModal').classList.remove('show');
+        }
+
+        window.selectPreset = function(index) {
+            localforage.getItem('fontPresets').then(presets => {
+                if(presets && presets[index]) { draftFontState = presets[index].state; applyStateToPreview(draftFontState); document.getElementById('iosModal').classList.remove('show'); }
+            });
+        };
+
+        window.addEventListener('DOMContentLoaded', loadGlobalSettings);
+
+// ==========================================
+//             导 出 与 导 入 逻 辑
+// ==========================================
+
+// 导出 JSON（升级版 - 适配手机端）
+async function exportDesktop() {
+    try {
+        let exportData = {};
+        await localforage.iterate((value, key) => {
+            exportData[key] = value;
+        });
+        
+        const dataStr = JSON.stringify(exportData);
+        const file = new File([dataStr], "我的桌面美化配置.json", { type: "application/json" });
+        
+        // 优先尝试唤起手机原生分享菜单 (可存入系统“文件”App)
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            await navigator.share({
+                title: '桌面配置文件备份',
+                files: [file]
+            });
+        } else {
+            // 电脑端或老浏览器回退到普通下载
+            const url = URL.createObjectURL(file);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "我的桌面美化配置.json";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            await showIosAlert("导出完毕", "配置已打包为JSON。如果没看到下载文件，请点击右上角在自带浏览器(如Safari)中打开后重试。");
+        }
+    } catch (err) {
+        console.error(err);
+        showIosAlert("导出提示", "导出结束。如果未能成功保存，请使用 Safari 浏览器重试。");
+    }
+}
+
+// 导入 JSON
+document.getElementById('importJsonInput').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = async function(ev) {
+        try {
+            const importData = JSON.parse(ev.target.result);
+            // 将 JSON 里的数据全部写回数据库
+            for (let key in importData) {
+                await localforage.setItem(key, importData[key]);
+            }
+            await showIosAlert("导入成功", "桌面配置已完美恢复！点击确定后将自动刷新页面生效。");
+            location.reload(); // 刷新页面以应用新数据
+        } catch (err) {
+            showIosAlert("导入失败", "文件格式不正确或解析错误。");
+        }
+    };
+    reader.readAsText(file);
+    e.target.value = ''; // 允许重复导入同一个文件
+});
+
+    </script>
+</body>
+</html>
