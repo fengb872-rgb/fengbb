@@ -9,6 +9,7 @@
     <title>iOS Style Profile Widget (Anime Edition - Ultimate)</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
     <style>
         :root {
             --bg-color: #fcfcfc;
@@ -288,6 +289,546 @@
         .icon-preview-fa { font-size: 16px; color: #555; }
         .icon-preview-img { width: 100%; height: 100%; object-fit: cover; display: none; position: absolute; z-index: 2;}
 
+/* iOS 拟真开关 */
+.ios-switch {
+    position: relative; width: 51px; height: 31px; flex-shrink: 0;
+}
+.ios-switch input {
+    opacity: 0; width: 0; height: 0;
+}
+.ios-switch-slider {
+    position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+    background-color: #e9e9ea; border-radius: 31px; transition: 0.3s;
+}
+.ios-switch-slider::before {
+    content: ""; position: absolute; height: 27px; width: 27px; left: 2px; bottom: 2px;
+    background-color: #fff; border-radius: 50%; transition: 0.3s;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+.ios-switch input:checked + .ios-switch-slider {
+    background-color: #34c759;
+}
+.ios-switch input:checked + .ios-switch-slider::before {
+    transform: translateX(20px);
+}
+
+/* 提示音选中打勾 */
+.sound-item { position: relative; }
+.sound-item .sound-check {
+    color: var(--ios-blue); font-size: 18px; display: none;
+}
+.sound-item.selected .sound-check {
+    display: block;
+}
+
+/* API 设置页专用样式 */
+.api-input-label {
+    font-size: 15px; color: var(--text-main); width: 55px; flex-shrink: 0; font-weight: 400;
+}
+.api-eye-btn {
+    color: #c7c7cc; font-size: 16px; padding: 5px 2px; cursor: pointer; flex-shrink: 0;
+}
+.api-eye-btn:active { color: #8e8e93; }
+
+/* 模型选择列表弹窗 */
+.model-list-scroll {
+    max-height: 260px; overflow-y: auto; text-align: left;
+    border-top: 0.5px solid rgba(0,0,0,0.1); -webkit-overflow-scrolling: touch;
+}
+.model-list-item {
+    padding: 13px 15px; border-bottom: 0.5px solid rgba(0,0,0,0.08);
+    cursor: pointer; display: flex; align-items: center; justify-content: space-between;
+    font-size: 15px; color: var(--text-main); transition: background 0.15s;
+}
+.model-list-item:active { background: #f2f2f7; }
+.model-list-item .model-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.model-list-item .model-check { color: var(--ios-blue); font-size: 16px; display: none; margin-left: 10px; }
+.model-list-item.selected .model-check { display: block; }
+
+/* 加载旋转动画 */
+@keyframes spin { to { transform: rotate(360deg); } }
+.spinning { animation: spin 1s linear infinite; }
+
+/* iOS 加载转圈弹窗 */
+.ios-loading-overlay {
+    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+    background: rgba(0,0,0,0.4); z-index: 99999;
+    display: none; justify-content: center; align-items: center;
+}
+.ios-loading-overlay.show { display: flex; }
+.ios-loading-box {
+    width: 120px; height: 120px;
+    background: rgba(46,46,46,0.95); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    border-radius: 18px; display: flex; flex-direction: column;
+    justify-content: center; align-items: center; gap: 14px;
+    box-shadow: 0 5px 30px rgba(0,0,0,0.3);
+}
+.ios-spinner {
+    width: 36px; height: 36px;
+    border: 3px solid rgba(255,255,255,0.2);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: iosSpinAnim 0.8s linear infinite;
+}
+@keyframes iosSpinAnim { to { transform: rotate(360deg); } }
+.ios-loading-text {
+    font-size: 13px; color: rgba(255,255,255,0.9); text-align: center;
+    font-family: var(--sys-font-family);
+}
+
+/* ========================================= */
+/*       极简黑白灰 INS 风格聊天页样式       */
+/* ========================================= */
+/* 1. 顶部小组件 (完美复刻图片) */
+.ins-widget-container {
+    margin: 0 20px 25px 20px; display: flex; flex-direction: column; gap: 15px;
+}
+.ins-widget-top {
+    display: flex; justify-content: space-between; align-items: flex-start;
+}
+.ins-w-left { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.ins-w-avatar-box {
+    width: 60px; height: 60px; background: #fff; border-radius: 12px;
+    padding: 6px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); box-sizing: border-box;
+}
+.ins-w-avatar-box img { 
+    width: 100%; height: 100%; object-fit: cover; border-radius: 8px; cursor: pointer;
+    border: 1px solid #f0f0f0; box-sizing: border-box;
+}
+.ins-w-subtext { font-size: 10px; color: #999; font-weight: 500; }
+
+.ins-w-mid { flex: 1; padding: 4px 15px 0 15px; display: flex; flex-direction: column; gap: 8px; }
+.ins-w-title { font-size: 14px; font-weight: 600; color: #333; }
+.ins-w-handle { font-size: 13px; font-weight: 500; color: #999; letter-spacing: 0.5px; }
+
+.ins-w-right { padding-top: 4px; font-size: 11px; font-weight: 600; color: #666; display: flex; align-items: center; }
+
+/* 气泡 */
+.ins-w-bubble {
+    background: #fff; padding: 18px 20px; border-radius: 16px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.03); position: relative;
+}
+.ins-w-triangle {
+    position: absolute; top: -8px; left: 25px; width: 0; height: 0;
+    border-left: 10px solid transparent; border-right: 10px solid transparent;
+    border-bottom: 10px solid #fff;
+}
+.ins-w-bubble-text { font-size: 14px; color: #444; font-weight: 500; line-height: 1.4; letter-spacing: 0.5px; }
+
+/* 2. 极简消息列表 */
+.ins-msg-list {
+    flex: 1; background: #fff; border-radius: 30px 30px 0 0; padding: 25px 20px;
+    box-shadow: 0 -5px 20px rgba(0,0,0,0.02); overflow-y: auto; padding-bottom: 120px;
+}
+.ins-msg-item { display: flex; align-items: center; margin-bottom: 25px; cursor: pointer; position: relative; }
+.ins-msg-avatar {
+    width: 46px; height: 46px; background: #f5f5f5; border-radius: 50%;
+    display: flex; justify-content: center; align-items: center; font-size: 18px; color: #333;
+    margin-right: 15px; flex-shrink: 0;
+}
+.ins-msg-content { flex: 1; display: flex; flex-direction: column; gap: 4px; border-bottom: none; overflow: hidden; min-width: 0;}
+.ins-msg-top { display: flex; justify-content: space-between; align-items: center; }
+.ins-msg-name { font-size: 15px; font-weight: 600; color: #222; }
+.ins-msg-time { font-size: 11px; font-weight: 500; color: #aaa; }
+
+.ins-msg-preview { 
+    font-size: 13px; color: #888; font-weight: 400; 
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; 
+}
+
+.ins-msg-dot {
+    width: 8px; height: 8px; background: #222; border-radius: 50%;
+    position: absolute; right: 0; top: 50%; transform: translateY(-50%);
+}
+
+/* 全局悬浮 Tab 栏 */
+.ins-global-tab {
+    position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
+    width: 85%; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    border-radius: 30px; display: flex; justify-content: space-around; padding: 18px 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.08); border: 1px solid rgba(255,255,255,0.5); z-index: 104; /* 层级高于普通页面 */
+    box-sizing: border-box;
+}
+.ins-tab { display: flex; flex-direction: column; align-items: center; cursor: pointer; }
+.ins-tab i { font-size: 22px; color: #b0b0b0; transition: 0.2s; }
+.ins-tab.active i { color: #111; transform: translateY(-2px); }
+
+/* 极简通用导航 */
+.ins-nav-bar { padding: 55px 20px 15px 20px; display: flex; justify-content: space-between; align-items: center; background: #f7f7f7; flex-shrink: 0; }
+.nav-icon { font-size: 20px; color: #333; cursor: pointer; }
+.nav-title { font-size: 16px; font-weight: 600; color: #111; letter-spacing: 0.5px; }
+.nav-plus { font-size: 34px; font-weight: 200; cursor: pointer; color: #111; line-height: 1; margin-top: -4px; }
+.nav-text-btn { font-size: 15px; cursor: pointer; color: #666; }
+.nav-text-btn.bold { font-weight: 600; color: #111; }
+
+/* 联系人：毛玻璃搜索 */
+.ins-search-wrap { padding: 0 20px 15px 20px; background: #f7f7f7; flex-shrink: 0; }
+.ins-search-box-v2 {
+    background: rgba(0,0,0,0.04); border-radius: 12px; padding: 10px 15px;
+    display: flex; align-items: center; gap: 8px; color: #888;
+}
+.ins-search-box-v2 input { border: none; background: transparent; outline: none; flex: 1; font-size: 14px; color: #111; }
+
+/* 联系人：留白卡片列表 */
+.ins-contacts-scroll { flex: 1; overflow-y: auto; padding-bottom: 120px; }
+.contact-my-card {
+    background: #fff; margin: 0 20px 20px 20px; border-radius: 20px; padding: 15px;
+    display: flex; align-items: center; box-shadow: 0 4px 20px rgba(0,0,0,0.02);
+}
+.contact-group-label { font-size: 11px; font-weight: 600; color: #999; letter-spacing: 1px; padding: 10px 25px 8px; text-transform: uppercase; }
+.contact-list-card {
+    background: #fff; margin: 0 20px 12px 20px; border-radius: 16px; padding: 12px 15px;
+    display: flex; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.01); transition: transform 0.1s;
+}
+.contact-list-card:active { transform: scale(0.98); background: #fafafa; }
+.cl-avatar { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; margin-right: 15px; border: 1px solid #f0f0f0; }
+.cl-info { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 4px; }
+.cl-name { font-size: 16px; font-weight: 600; color: #111; }
+.cl-desc { font-size: 12px; color: #888; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px; }
+
+/* 档案夹式新建角色 UI */
+.diary-card-container {
+    background: #fff; margin: 0 20px 50px 20px; border-radius: 24px; padding: 25px 20px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.04); display: flex; flex-direction: column; gap: 20px;
+}
+.diary-header { display: flex; align-items: center; gap: 20px; }
+.diary-avatar-box { position: relative; width: 75px; height: 75px; flex-shrink: 0; cursor: pointer; }
+.diary-avatar-box img { width: 100%; height: 100%; border-radius: 20px; object-fit: cover; border: 1px solid #eee; }
+.avatar-edit-tag {
+    position: absolute; bottom: -5px; right: -5px; background: #111; color: #fff;
+    width: 24px; height: 24px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 10px; border: 2px solid #fff;
+}
+.diary-header-info { flex: 1; }
+.diary-label { font-size: 9px; font-weight: 700; color: #aaa; letter-spacing: 1px; margin-bottom: 2px; }
+.diary-input-title {
+    width: 100%; border: none; background: transparent; outline: none; font-size: 20px; font-weight: 600; color: #111; border-bottom: 1.5px dashed #eaeaea; padding-bottom: 4px;
+}
+.diary-input-line {
+    width: 100%; border: none; background: transparent; outline: none; font-size: 14px; color: #333; border-bottom: 1px dashed #eaeaea; padding-bottom: 6px;
+}
+.diary-divider { height: 1px; background: #f0f0f0; margin: 5px 0; }
+.diary-section { display: flex; flex-direction: column; gap: 8px; }
+.diary-label-inline { font-size: 13px; font-weight: 500; color: #111; }
+.diary-label-inline span { font-size: 9px; font-weight: 700; color: #aaa; background: #f5f5f5; padding: 2px 6px; border-radius: 4px; margin-right: 6px; letter-spacing: 0.5px; }
+.diary-textarea {
+    width: 100%; border: none; background: #fafafa; border-radius: 12px; outline: none; resize: none; padding: 15px; font-size: 14px; color: #333; line-height: 1.6; min-height: 80px; box-sizing: border-box;
+}
+
+/* INS 极简卡片表单样式 */
+.ins-form-card {
+    background: #fff;
+    border-radius: 26px;
+    padding: 30px 25px 20px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.03);
+    display: flex;
+    flex-direction: column;
+}
+.ins-form-avatar-box {
+    align-self: center;
+    position: relative;
+    margin-bottom: 40px;
+    cursor: pointer;
+}
+.ins-form-avatar-box img {
+    width: 90px;
+    height: 90px;
+    border-radius: 26px;
+    object-fit: cover;
+    border: 1px solid #f0f0f0;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.04);
+}
+.ins-form-avatar-edit {
+    position: absolute;
+    bottom: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #111;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 5px 14px;
+    border-radius: 12px;
+    letter-spacing: 1px;
+    border: 2.5px solid #fff;
+}
+.ins-form-item {
+    margin-bottom: 25px;
+    border-bottom: 1px solid #f2f2f2;
+    padding-bottom: 10px;
+}
+.ins-form-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: #b3b3b3;
+    letter-spacing: 1px;
+    margin-bottom: 6px;
+}
+.ins-form-input {
+    width: 100%;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-size: 15px;
+    color: #111;
+    font-family: inherit;
+}
+.ins-form-input.bold {
+    font-size: 18px;
+    font-weight: 600;
+}
+.ins-form-input::placeholder, .ins-form-textarea::placeholder {
+    color: #e0e0e0;
+    font-weight: 400;
+}
+.ins-form-textarea {
+    width: 100%;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-size: 14px;
+    color: #333;
+    resize: none;
+    height: 120px;
+    font-family: inherit;
+    line-height: 1.6;
+}
+
+/* 1. 复刻截图的圆环组件样式 */
+.screenshot-ring-widget {
+    position: relative;
+    width: 120px;
+    height: 120px;
+}
+.ring-avatar {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    border: 3px solid #f0f0f0; /* 外层浅灰圈 */
+    padding: 6px;
+    box-sizing: border-box;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.ring-avatar img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+}
+.ring-bubble {
+    position: absolute;
+    top: -10px;
+    left: -20px;
+    background: #fff;
+    padding: 8px 14px;
+    border-radius: 14px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #555;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    z-index: 10;
+}
+/* 气泡小尖角 */
+.ring-bubble::after {
+    content: '';
+    position: absolute;
+    bottom: -6px;
+    left: 20px;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 6px solid #fff;
+}
+.ring-plus {
+    position: absolute;
+    bottom: 5px;
+    right: 5px;
+    width: 32px;
+    height: 32px;
+    background: rgba(200, 200, 200, 0.85); /* 灰色半透明底 */
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #fff;
+    font-size: 18px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    cursor: pointer;
+    z-index: 10;
+}
+
+/* 2. 极简黑白灰表单样式 (无卡片，高级感) */
+.minimal-avatar-box {
+    position: relative;
+    width: 85px;
+    height: 85px;
+    cursor: pointer;
+}
+.minimal-avatar-box img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    background: #f5f5f5;
+}
+.minimal-avatar-icon {
+    position: absolute;
+    bottom: -8px;
+    right: -8px;
+    background: #111;
+    color: #fff;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 12px;
+    border: 2px solid #fff;
+}
+.minimal-form-item {
+    margin-bottom: 22px;
+}
+.minimal-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #111;
+    margin-bottom: 8px;
+    padding-left: 2px;
+}
+.minimal-input {
+    width: 100%;
+    background: #f5f5f5; /* 纯净的浅灰底色 */
+    border: none;
+    outline: none;
+    border-radius: 10px;
+    padding: 14px 16px;
+    font-size: 15px;
+    color: #111;
+    box-sizing: border-box;
+}
+.minimal-textarea {
+    width: 100%;
+    background: #f5f5f5;
+    border: none;
+    outline: none;
+    border-radius: 12px;
+    padding: 16px;
+    font-size: 14px;
+    color: #111;
+    resize: none;
+    height: 110px;
+    box-sizing: border-box;
+    line-height: 1.5;
+}
+.minimal-input::placeholder, .minimal-textarea::placeholder {
+    color: #b3b3b3;
+    font-weight: 400;
+}
+
+/* iOS 弹出菜单 */
+.ios-chat-menu {
+    position: absolute; top: 85px; right: 20px; background: #fff; width: 150px;
+    border-radius: 14px; box-shadow: 0 5px 25px rgba(0,0,0,0.12); z-index: 100;
+    display: none; flex-direction: column; overflow: hidden;
+}
+.ios-chat-menu.show { display: flex; }
+.menu-item { padding: 14px 16px; font-size: 15px; color: #111; font-weight: 500; display: flex; align-items: center; gap: 10px; cursor: pointer; background: #fff;}
+.menu-item:active { background: #f5f5f5; }
+.menu-separator { height: 1px; background: #f0f0f0; margin: 0 10px; }
+
+/* 选人弹窗 */
+.chat-contact-modal {
+    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.4);
+    z-index: 200; display: none; justify-content: center; align-items: center; opacity: 0; transition: opacity 0.2s;
+}
+.chat-contact-modal.show { display: flex; opacity: 1; }
+.chat-contact-modal .modal-content {
+    background: #fff; width: 85%; max-height: 70vh; border-radius: 20px; display: flex; flex-direction: column; overflow: hidden;
+}
+.modal-header { padding: 18px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f0f0f0; }
+.modal-list { flex: 1; overflow-y: auto; padding: 10px 0; }
+.modal-list-item { padding: 12px 20px; display: flex; align-items: center; gap: 15px; cursor: pointer; border-bottom: 1px solid #fafafa; }
+.modal-list-item:active { background: #f9f9f9; }
+.modal-list-avatar { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 1px solid #f0f0f0;}
+
+/* 黑白灰 INS 气泡 (去尾巴，饱满圆角) */
+
+.msg-row { 
+    display: flex; align-items: flex-start; /* 改成靠上对齐，气泡自然往下伸长 */
+    gap: 10px; width: 100%; margin-bottom: 12px; 
+}
+
+.msg-avatar { 
+    width: 40px; height: 40px; border-radius: 50%; 
+    object-fit: cover; flex-shrink: 0; border: 1px solid #f0f0f0; 
+}
+
+.msg-bubble {
+    max-width: 68%; padding: 10px 15px; font-size: 15px; line-height: 1.5; word-wrap: break-word;
+    border-radius: 18px; min-height: 20px; box-sizing: border-box;
+    /* 删除了旧代码里的 display: flex 和 align-items: center，恢复正常文本流 */
+}
+
+/* 对方：白底黑字 */
+.msg-row.other .msg-bubble {
+    background: #ffffff; color: #111;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+}
+/* 自己：黑底白字 (靠右排列) */
+.msg-row.me { flex-direction: row-reverse; }
+.msg-row.me .msg-bubble {
+    background: #1a1a1a; color: #fff;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+}
+
+/* QQ 风格底部栏 (两边内缩) */
+.qq-bottom-bar { background: #f7f7f7; padding: 12px 20px 30px; flex-shrink: 0; display: flex; flex-direction: column; gap: 15px; }
+.qq-input-wrap { background: #ffffff; border-radius: 20px; padding: 8px 10px 8px 15px; display: flex; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.02); overflow: hidden;}
+.qq-input-wrap input { flex: 1; border: none; outline: none; background: transparent; font-size: 15px; color: #111; height: 24px; }
+.qq-icon-row { display: flex; justify-content: space-between; align-items: center; padding: 0 20px; /* 图标往内缩留出空位 */ }
+.qq-icon-row i { font-size: 24px; color: #555; cursor: pointer; transition: 0.1s; }
+.qq-icon-row i:active { color: #111; transform: scale(0.9); }
+
+/* 动态发送按钮 */
+
+/* 修改：发送按钮变成正圆形图标，并且常显 */
+.chat-send-btn {
+    background: #111; color: #fff; font-size: 14px;
+    width: 28px; height: 28px; border-radius: 50%;
+    display: flex; /* 改为flex，让它一直显示 */
+    justify-content: center; align-items: center; cursor: pointer; transition: 0.2s; flex-shrink: 0;
+}
+.chat-send-btn:active { transform: scale(0.9); }
+
+/* 新增：专门的白色回复按钮 */
+.chat-reply-btn {
+    background: #ffffff; color: #111; font-size: 14px;
+    width: 28px; height: 28px; border-radius: 50%;
+    border: 1px solid #e0e0e0; margin-left: 8px;
+    display: flex; justify-content: center; align-items: center; cursor: pointer; transition: 0.2s; flex-shrink: 0;
+}
+.chat-reply-btn:active { transform: scale(0.9); background: #f5f5f5; }
+
+/* 修改：气泡变小，与头像等高居中 */
+.msg-bubble {
+    max-width: 68%; padding: 8px 14px; font-size: 15px; line-height: 1.4; word-wrap: break-word;
+    border-radius: 18px; min-height: 40px; box-sizing: border-box; display: flex; align-items: center;
+}
+
+/* 新增：AI 回复时的打字点点点动画 */
+.typing-dots { display: flex; gap: 4px; align-items: center; justify-content: center; min-width: 30px; }
+.typing-dots span { width: 5px; height: 5px; background: #888; border-radius: 50%; animation: typingAnim 1.2s infinite ease-in-out; }
+.typing-dots span:nth-child(1) { animation-delay: 0s; }
+.typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+.typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes typingAnim {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-3px); background: #333; }
+}
+
     </style>
 </head>
 <body>
@@ -440,6 +981,105 @@
 
         </div>
 
+<!-- 新增角色专用隐藏上传口 -->
+<input type="file" id="newRoleAvatarInput" accept="image/*" style="display: none;">
+
+<!-- ========================================= -->
+<!--       联系人列表 (包含截图同款圆环组件)        -->
+<!-- ========================================= -->
+<div class="sub-page" id="contactsPage" style="z-index: 103; background-color: #fcfcfc;">
+    
+    <!-- 顶部居中：完美复刻截图的圆环悬浮组件 -->
+    <div style="padding: 70px 20px 20px; display: flex; justify-content: center; flex-shrink: 0;">
+        <div class="screenshot-ring-widget">
+            <!-- 左上角对话气泡 -->
+            <div class="ring-bubble">新建角色</div>
+            <!-- 中心圆环与头像 -->
+         <!-- 中心圆环与头像 -->
+<div class="ring-avatar">
+    <img id="contactsRingAvatar" src="https://api.dicebear.com/7.x/notionists/svg?seed=Create&backgroundColor=f5f5f5" alt="avatar">
+</div>
+            <!-- 右下角悬浮加号 -->
+<div class="ring-plus" onclick="showPage('addRolePage'); document.getElementById('chatAppTabBar').style.display = 'none';">
+    <i class="fa-solid fa-plus"></i>
+</div>
+        </div>
+    </div>
+
+    <!-- 极简搜索框 -->
+    <div style="padding: 0 20px 10px; flex-shrink: 0;">
+        <div style="background: #f0f0f0; border-radius: 14px; padding: 10px 15px; display: flex; align-items: center; gap: 8px;">
+            <i class="fa-solid fa-magnifying-glass" style="color: #999; font-size: 14px;"></i>
+            <input type="text" placeholder="搜索联系人" style="border: none; background: transparent; outline: none; flex: 1; font-size: 14px; color: #111;">
+        </div>
+    </div>
+
+    <!-- 列表区 -->
+    <div class="ins-contacts-scroll" id="contactsListContainer"></div>
+</div>
+
+<!-- ========================================= -->
+<!--       纯正极简黑白灰：新增角色界面            -->
+<!-- ========================================= -->
+<div class="sub-page" id="addRolePage" style="z-index: 105; background-color: #ffffff;">
+    <!-- 极简头部 -->
+    <div style="padding: 55px 20px 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f9f9f9; flex-shrink: 0;">
+      <i class="fa-solid fa-xmark" style="font-size: 22px; color: #111; cursor: pointer;" onclick="hidePage('addRolePage'); document.getElementById('chatAppTabBar').style.display = 'flex';"></i>
+        <div style="font-size: 16px; font-weight: 600; color: #111;">新建角色</div>
+        <div style="font-size: 15px; font-weight: 600; color: #111; cursor: pointer;" onclick="saveNewRole()">保存</div>
+    </div>
+
+    <div style="flex: 1; overflow-y: auto; padding: 30px 25px 100px;">
+        <!-- 头像区 -->
+        <div style="display: flex; justify-content: center; margin-bottom: 40px;">
+         <div class="minimal-avatar-box" id="newRoleAvatarBox">
+                <img id="newRoleAvatarPreview" src="https://api.dicebear.com/7.x/notionists/svg?seed=new&backgroundColor=f5f5f5">
+                <div class="minimal-avatar-icon"><i class="fa-solid fa-camera"></i></div>
+            </div>
+        </div>
+
+        <!-- 极简黑白表单 -->
+        <div class="minimal-form-item">
+            <div class="minimal-label">角色名称</div>
+            <input type="text" id="roleName" class="minimal-input" placeholder="输入名称">
+        </div>
+
+        <div class="minimal-form-item">
+            <div class="minimal-label">备注</div>
+            <input type="text" id="roleRemark" class="minimal-input" placeholder="给他的备注昵称">
+        </div>
+
+        <div class="minimal-form-item">
+            <div class="minimal-label">所在分组</div>
+            <input type="text" id="roleGroup" class="minimal-input" placeholder="默认为：我的好友">
+        </div>
+
+     <div class="minimal-form-item">
+            <!-- 标题栏：左右分布布局 -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; padding-left: 2px;">
+                <div class="minimal-label" style="margin-bottom: 0; padding-left: 0;">人设</div>
+                <!-- 导入文件小按钮 -->
+                <div style="font-size: 11px; color: #555; cursor: pointer; display: flex; align-items: center; gap: 4px; font-weight: 600; background: #f5f5f5; padding: 4px 8px; border-radius: 8px;" onclick="document.getElementById('importPersonaInput').click()">
+                    <i class="fa-solid fa-file-arrow-up"></i> 导入 txt/docx
+                </div>
+            </div>
+            <!-- 文本框与隐藏的文件输入框 -->
+            <textarea id="rolePersona" class="minimal-textarea" placeholder="详细描绘角色的性格、故事与..."></textarea>
+            <input type="file" id="importPersonaInput" accept=".txt,.docx" style="display: none;">
+        </div>
+
+        <div class="minimal-form-item">
+            <div class="minimal-label">音色 ID (选填)</div>
+            <input type="text" id="roleVoiceId" class="minimal-input" placeholder="MiniMax 音色">
+        </div>
+
+        <div class="minimal-form-item" style="margin-bottom: 0;">
+            <div class="minimal-label">绑定世界书 (选填)</div>
+            <input type="text" id="roleWorldbook" class="minimal-input" placeholder="输入世界书名称">
+        </div>
+    </div>
+</div>
+
         <!-- 搜索胶囊 -->
         <div class="search-pill">
             <i class="fa-solid fa-magnifying-glass"></i> 搜索
@@ -522,6 +1162,352 @@
                 </div>
             </div>
         </div>
+
+<!-- 这个隐藏的 input 放在 chatPage 里面或外面都可以，用来传头像 -->
+<input type="file" id="insAvatarInput" accept="image/*" style="display: none;">
+
+<!-- ========================================= -->
+<!--        聊 天 页 面 (极简黑白灰 INS 风格)      -->
+<!-- ========================================= -->
+<div class="sub-page" id="chatPage" style="z-index: 103; background-color: #f7f7f7;">
+    
+    <!-- 顶部：带右上角加号 -->
+    <div style="padding: 55px 20px 10px 20px; display: flex; justify-content: space-between; align-items: center; color: #333; position: relative;">
+      <i class="fa-solid fa-chevron-left" style="font-size: 20px; cursor: pointer;" onclick="hidePage('chatPage'); document.getElementById('chatAppTabBar').style.display = 'none';"></i>
+        <!-- 右上角加号触发菜单 -->
+        <span style="font-size: 34px; font-weight: 200; cursor: pointer; line-height: 1; margin-top: -4px;" onclick="toggleChatMenu(event)">+</span>
+        
+        <!-- iOS 风格弹出菜单 -->
+        <div id="chatPlusMenu" class="ios-chat-menu">
+            <div class="menu-item" onclick="openChatContactSelector()"><i class="fa-regular fa-comment-dots"></i> 发起聊天</div>
+            <div class="menu-separator"></div>
+            <div class="menu-item"><i class="fa-solid fa-user-group"></i> 创建群聊</div>
+        </div>
+    </div>
+
+    <!-- 隐藏的好友选择弹窗 -->
+    <div id="chatContactModal" class="chat-contact-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div style="width: 30px;"></div>
+                <div style="font-weight: 600; font-size: 16px;">选择联系人</div>
+                <i class="fa-solid fa-xmark" style="font-size: 20px; color: #999; cursor: pointer; width: 30px; text-align: right;" onclick="closeChatContactSelector()"></i>
+            </div>
+            <div id="chatContactList" class="modal-list"></div>
+        </div>
+    </div>
+
+    <!-- 1. 顶部自定义图文小组件 -->
+    <div class="ins-widget-container">
+        <div class="ins-widget-top">
+            <!-- 左侧头像区 -->
+            <div class="ins-w-left">
+                <div class="ins-w-avatar-box">
+                    <img id="insAvatarImg" src="https://api.dicebear.com/7.x/notionists/svg?seed=ghost&backgroundColor=ffffff" alt="avatar">
+                </div>
+                <div class="ins-w-subtext" id="insAvatarText" contenteditable="true" spellcheck="false">该用户已注销</div>
+            </div>
+            
+            <!-- 中间文字区 -->
+            <div class="ins-w-mid">
+                <div class="ins-w-title" id="insNameText" contenteditable="true" spellcheck="false">爱上一个天使的缺点</div>
+                <div class="ins-w-handle" id="insHandleText" contenteditable="true" spellcheck="false">@ Virovo_915</div>
+            </div>
+
+            <!-- 右侧日期区 -->
+            <div class="ins-w-right">
+                <span id="insDateText" contenteditable="true" spellcheck="false">01月16日</span>
+                <i class="fa-solid fa-heart" style="color: #999; font-size: 10px; margin: 0 4px;"></i>
+                <span id="insDayText" contenteditable="true" spellcheck="false">星期五</span>
+            </div>
+        </div>
+
+        <!-- 底部气泡区 -->
+        <div class="ins-w-bubble">
+            <div class="ins-w-triangle"></div>
+            <div class="ins-w-bubble-text" id="insBubbleText" contenteditable="true" spellcheck="false">你對我來說是宇宙，但我對你來說只是一顆星嗎？</div>
+        </div>
+    </div>
+
+    <!-- 2. 动态消息列表 (真实聊天记录会显示在这里) -->
+    <div class="ins-msg-list" id="chatSessionList">
+        <!-- 会话卡片将由 JS 动态生成 -->
+    </div>
+    <!-- ========================================= -->
+<!-- 全局悬浮 Tab 栏 (纯图标，永不消失)          -->
+<!-- ========================================= -->
+
+       
+   
+
+   
+</div>
+
+<!-- ========================================= -->
+<!--             设 置 首 页                    -->
+<!-- ========================================= -->
+<div class="sub-page" id="settingsPage">
+    <div class="theme-header">
+        <div class="back-btn" onclick="hidePage('settingsPage')"><i class="fa-solid fa-chevron-left"></i></div>
+    </div>
+    <div class="theme-large-title">设置</div>
+    <div class="theme-content">
+        <!-- 第一组：API 相关 -->
+        <div class="ios-group">
+            <div class="ios-item" onclick="openApiSettingsPage()">
+                <div class="item-icon" style="background:#34c759;"><i class="fa-solid fa-key"></i></div>
+                <div class="item-content">
+                    <div class="item-title">API 设置</div>
+                    <div class="item-subtitle">配置接口地址与密钥</div>
+                </div>
+                <div class="item-arrow"><i class="fa-solid fa-chevron-right"></i></div>
+            </div>
+            <div class="ios-item" onclick="openMiniMaxPage()">
+                <div class="item-icon" style="background:#5856d6;"><i class="fa-solid fa-microchip"></i></div>
+                <div class="item-content">
+                    <div class="item-title">MiniMax 设置</div>
+                    <div class="item-subtitle">MiniMax 模型专属参数配置</div>
+                </div>
+                <div class="item-arrow"><i class="fa-solid fa-chevron-right"></i></div>
+            </div>
+        </div>
+
+        <!-- 第二组：开关类 -->
+        <div class="ios-group">
+            <div class="ios-item no-active">
+                <div class="item-icon" style="background:#ff9500;"><i class="fa-solid fa-circle-nodes"></i></div>
+                <div class="item-content">
+                    <div class="item-title">API 悬浮球</div>
+                    <div class="item-subtitle">在屏幕边缘显示快捷悬浮球</div>
+                </div>
+                <label class="ios-switch">
+                    <input type="checkbox" id="toggleApiBubble" onchange="saveToggle('apiBubble', this.checked)">
+                    <span class="ios-switch-slider"></span>
+                </label>
+            </div>
+            <div class="ios-item no-active">
+                <div class="item-icon" style="background:#007aff;"><i class="fa-solid fa-shield-halved"></i></div>
+                <div class="item-content">
+                    <div class="item-title">后台保活</div>
+                    <div class="item-subtitle">防止应用被系统自动挂起</div>
+                </div>
+                <label class="ios-switch">
+                    <input type="checkbox" id="toggleKeepAlive" onchange="saveToggle('keepAlive', this.checked)">
+                    <span class="ios-switch-slider"></span>
+                </label>
+            </div>
+        </div>
+
+        <!-- 第三组：提示音 -->
+        <div class="ios-group">
+            <div class="ios-item" onclick="showPage('notifSoundPage')">
+                <div class="item-icon" style="background:#ff3b30;"><i class="fa-solid fa-bell"></i></div>
+                <div class="item-content">
+                    <div class="item-title">消息提示音</div>
+                    <div class="item-subtitle" id="currentSoundLabel">默认</div>
+                </div>
+                <div class="item-arrow"><i class="fa-solid fa-chevron-right"></i></div>
+            </div>
+        </div>
+
+        <!-- 版本信息 -->
+        <div style="text-align:center; padding: 30px 0 10px; font-size:12px; color:#8e8e93;">
+            Version 1.0.0
+        </div>
+    </div>
+</div>
+
+<!-- ========================================= -->
+<!--           API 设 置 子 页 面               -->
+<!-- ========================================= -->
+<div class="sub-page" id="apiSettingsPage" style="z-index:102;">
+    <div class="theme-header">
+        <div class="back-btn" onclick="hidePage('apiSettingsPage')"><i class="fa-solid fa-chevron-left"></i></div>
+        <div class="header-title">API 设置</div>
+    </div>
+    <div class="theme-content">
+
+        <!-- 预设操作栏 -->
+        <div class="ios-group row-group">
+            <div class="ios-item" onclick="openApiPresetPage()">
+                <div class="item-center-text text-blue">选择预设</div>
+            </div>
+            <div class="vertical-divider"></div>
+            <div class="ios-item" onclick="saveApiPreset()">
+                <div class="item-center-text text-blue">保存预设</div>
+            </div>
+        </div>
+
+        <!-- 接口地址 & 密钥 -->
+        <div style="font-size:13px; color:#8e8e93; margin:15px 0 8px 5px; text-transform:uppercase; letter-spacing:0.5px;">接口配置</div>
+        <div class="ios-group">
+            <div class="ios-item no-active full-line">
+                <div class="ios-input-row">
+                    <div class="api-input-label">地址</div>
+                    <input type="text" id="apiUrlInput" placeholder="https://api.openai.com/v1">
+                </div>
+            </div>
+            <div class="ios-item no-active full-line">
+                <div class="ios-input-row">
+                    <div class="api-input-label">密钥</div>
+                    <input type="password" id="apiKeyInput" placeholder="sk-..." style="flex:1; border:none; outline:none; background:transparent; font-size:15px; color:var(--text-main); font-family:var(--sys-font-family);">
+                    <i class="fa-solid fa-eye api-eye-btn" id="apiKeyEye" onclick="toggleApiKeyVisible()"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- 模型选择 -->
+<div style="font-size:13px; color:#8e8e93; margin:20px 0 8px 5px; text-transform:uppercase; letter-spacing:0.5px;">模型</div>
+<div class="ios-group">
+    <div class="ios-item full-line" onclick="openModelSelector()">
+        <div class="ios-input-row" style="min-height:24px;">
+            <div class="api-input-label" style="width:auto; margin-right:10px;">当前模型</div>
+            <div id="apiModelDisplay" style="flex:1; font-size:15px; color:#8e8e93; text-align:right; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">未选择</div>
+            <i class="fa-solid fa-chevron-right" style="color:#c7c7cc; font-size:14px; margin-left:8px;"></i>
+        </div>
+    </div>
+</div>
+
+        <!-- 参数调节 -->
+        <div style="font-size:13px; color:#8e8e93; margin:20px 0 8px 5px; text-transform:uppercase; letter-spacing:0.5px;">生成参数</div>
+        <div class="ios-group">
+            <div class="ios-item no-active full-line">
+                <div style="width:100%;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                        <span style="font-size:15px; color:var(--text-main);">温度</span>
+                        <span id="apiTempValue" style="font-size:15px; color:#8e8e93; font-variant-numeric:tabular-nums;">0.7</span>
+                    </div>
+                    <input type="range" id="apiTempSlider" min="0" max="2" step="0.1" value="0.7" style="width:100%; margin:0; accent-color:#007aff;">
+                    <div style="display:flex; justify-content:space-between; margin-top:4px;">
+                        <span style="font-size:11px; color:#c7c7cc;">精确</span>
+                        <span style="font-size:11px; color:#c7c7cc;">创意</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 保存 & 清除 -->
+        <div class="ios-group" style="margin-top:25px;">
+            <div class="ios-item" onclick="saveApiSettings()">
+                <div class="item-content"><div class="item-center-text text-blue" style="font-weight:600;">保存设置</div></div>
+            </div>
+        </div>
+        <div class="ios-group">
+            <div class="ios-item" onclick="clearApiSettings()">
+                <div class="item-content"><div class="item-center-text text-red">清除所有 API 配置</div></div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- ========================================= -->
+<!--         MiniMax 设 置 子 页 面             -->
+<!-- ========================================= -->
+<div class="sub-page" id="minimaxPage" style="z-index:102;">
+    <div class="theme-header">
+        <div class="back-btn" onclick="hidePage('minimaxPage')"><i class="fa-solid fa-chevron-left"></i></div>
+        <div class="header-title">MiniMax 设置</div>
+    </div>
+    <div class="theme-content">
+       <div style="font-size:13px; color:var(--text-sub); margin-bottom:15px; padding:0 5px;">
+    MiniMax 平台专属配置项。开启后将优先使用 MiniMax 接口。
+</div>
+
+<!-- 启用开关 -->
+<div class="ios-group">
+    <div class="ios-item no-active">
+        <div class="item-icon" style="background:#5856d6;"><i class="fa-solid fa-power-off"></i></div>
+        <div class="item-content">
+            <div class="item-title">启用 MiniMax</div>
+            <div class="item-subtitle">开启后优先使用 MiniMax 接口</div>
+        </div>
+        <label class="ios-switch">
+            <input type="checkbox" id="mmEnableSwitch" onchange="saveToggle('minimaxEnabled', this.checked)">
+            <span class="ios-switch-slider"></span>
+        </label>
+    </div>
+</div>
+
+<!-- 接口配置 -->
+<div style="font-size:13px; color:#8e8e93; margin:15px 0 8px 5px; text-transform:uppercase; letter-spacing:0.5px;">接口配置</div>
+<div class="ios-group">
+    <div class="ios-item no-active full-line">
+        <div class="ios-input-row">
+            <i class="fa-solid fa-fingerprint" style="color:#8e8e93; width:20px; text-align:center;"></i>
+            <input type="text" id="mmGroupId" placeholder="Group ID">
+        </div>
+    </div>
+    <div class="ios-item no-active full-line">
+        <div class="ios-input-row">
+            <i class="fa-solid fa-key" style="color:#8e8e93; width:20px; text-align:center;"></i>
+            <input type="text" id="mmApiKey" placeholder="MiniMax API Key">
+        </div>
+    </div>
+</div>
+
+<!-- 模型选择 -->
+<div style="font-size:13px; color:#8e8e93; margin:20px 0 8px 5px; text-transform:uppercase; letter-spacing:0.5px;">模型</div>
+<div class="ios-group">
+    <div class="ios-item full-line" onclick="openMiniMaxModelSelector()">
+        <div class="ios-input-row" style="min-height:24px;">
+            <div class="api-input-label" style="width:auto; margin-right:10px;">当前模型</div>
+            <div id="mmModelDisplay" style="flex:1; font-size:15px; color:#8e8e93; text-align:right; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">未选择</div>
+            <i class="fa-solid fa-chevron-right" style="color:#c7c7cc; font-size:14px; margin-left:8px;"></i>
+        </div>
+    </div>
+</div>
+
+<!-- 保存 & 清除 -->
+<div class="ios-group" style="margin-top:25px;">
+    <div class="ios-item" onclick="saveMiniMaxSettings()">
+        <div class="item-content"><div class="item-center-text text-blue" style="font-weight:600;">保存设置</div></div>
+    </div>
+</div>
+<div class="ios-group">
+    <div class="ios-item" onclick="clearMiniMaxSettings()">
+        <div class="item-content"><div class="item-center-text text-red">清除 MiniMax 配置</div></div>
+    </div>
+</div>
+
+<div class="ios-group">
+    <div class="ios-item" onclick="window.open('https://platform.minimaxi.com/', '_blank')">
+        <div class="item-content"><div class="item-center-text text-blue">前往 MiniMax 官网</div></div>
+        <div class="item-arrow"><i class="fa-solid fa-arrow-up-right-from-square" style="font-size:12px;"></i></div>
+    </div>
+</div>
+
+    </div>
+</div>
+
+<!-- ========================================= -->
+<!--          消 息 提 示 音 子 页 面            -->
+<!-- ========================================= -->
+<div class="sub-page" id="notifSoundPage" style="z-index:102;">
+    <div class="theme-header">
+        <div class="back-btn" onclick="hidePage('notifSoundPage')"><i class="fa-solid fa-chevron-left"></i></div>
+        <div class="header-title">消息提示音</div>
+    </div>
+    <div class="theme-content">
+        <div style="font-size:13px; color:var(--text-sub); margin-bottom:15px; padding:0 5px;">
+            选择收到新消息时的提示铃声。
+        </div>
+        <div class="ios-group" id="soundList">
+            <!-- JS 动态生成 -->
+        </div>
+        <div class="ios-group">
+            <div class="ios-item" onclick="document.getElementById('customSoundInput').click()">
+                <div class="item-content"><div class="item-center-text text-blue">上传自定义铃声</div></div>
+            </div>
+        </div>
+        <input type="file" id="customSoundInput" accept="audio/*" style="display:none;">
+        <div class="ios-group">
+            <div class="ios-item" onclick="selectSound('default', '默认')">
+                <div class="item-content"><div class="item-center-text text-red">恢复默认提示音</div></div>
+            </div>
+        </div>
+    </div>
+</div>
 
         <!-- ========================================= -->
         <!--              图 标 设 置 页 面              -->
@@ -627,6 +1613,14 @@
         </div>
     </div>
 
+<!-- iOS 加载转圈弹窗 -->
+<div class="ios-loading-overlay" id="iosLoading">
+    <div class="ios-loading-box">
+        <div class="ios-spinner"></div>
+        <div class="ios-loading-text" id="iosLoadingText">正在拉取模型...</div>
+    </div>
+</div>
+
     <!-- 自定义 iOS 原生弹窗 -->
     <div class="ios-modal-overlay" id="iosModal">
         <div class="ios-modal-box">
@@ -639,6 +1633,68 @@
             </div>
         </div>
     </div>
+
+<!-- ========================================= -->
+<!--        正式聊天界面 (去掉写死 display)        -->
+<!-- ========================================= -->
+<div class="sub-page" id="activeChatPage" style="z-index: 106; background-color: #f7f7f7;">
+    <!-- 顶部导航 (返回按钮调用 hidePage 即可) -->
+    <div style="padding: 55px 20px 15px; display: flex; justify-content: space-between; align-items: center; background: #fff; flex-shrink: 0; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
+        <div style="display: flex; align-items: center; gap: 10px; cursor: pointer;" onclick="hidePage('activeChatPage')">
+            <i class="fa-solid fa-chevron-left" style="font-size: 20px; color: #111;"></i>
+            <span id="activeChatTitle" style="font-size: 18px; font-weight: 600; color: #111;">好友名字</span>
+        </div>
+        <i class="fa-solid fa-bars" style="font-size: 20px; color: #111; cursor: pointer;"></i>
+    </div>
+
+    <!-- 聊天记录区 -->
+    <div id="activeChatArea" style="flex: 1; overflow-y: auto; padding: 20px 15px; display: flex; flex-direction: column; gap: 20px; padding-bottom: 30px;"></div>
+
+    <!-- QQ 风格底部输入栏 -->
+    <div class="qq-bottom-bar">
+        <!-- 文本输入框 + 发送按钮 + 回复按钮 -->
+        <div class="qq-input-wrap">
+            <input type="text" id="chatInput" placeholder="发消息..." onkeypress="if(event.key === 'Enter') sendUserMessageOnly()">
+            
+            <!-- 发送按钮：仅把文字发出去，不上报API -->
+            <div id="chatSendBtn" class="chat-send-btn" onclick="sendUserMessageOnly()">
+                <i class="fa-solid fa-arrow-up"></i>
+            </div>
+            
+            <!-- 回复按钮：白底按钮，点击后才会触发API请求 -->
+          <div id="chatReplyBtn" class="chat-reply-btn" onclick="triggerAiReply()">
+    <i class="fa-solid fa-envelope"></i>
+</div>
+        </div> <!-- ✅ 核心修复：这里补上了缺失的 </div> -->
+        
+        <!-- 功能图标排版 (两边内缩) -->
+        <div class="qq-icon-row">
+            <i class="fa-solid fa-microphone"></i>
+            <i class="fa-regular fa-image"></i>
+            <i class="fa-solid fa-camera"></i>
+            <i class="fa-regular fa-face-smile"></i>
+            <i class="fa-solid fa-rotate-left"></i>
+            <i class="fa-solid fa-circle-plus"></i>
+        </div>
+    </div>
+</div>
+
+<!-- ✅ 悬浮 Tab 栏现在已经完全独立，不再受二级聊天页面影响 -->
+<div class="ins-global-tab" id="chatAppTabBar" style="display: none;">
+    <div class="ins-tab active" id="tab-chat" onclick="switchMainTab('chatPage', 'tab-chat')">
+
+        <i class="fa-solid fa-message"></i>
+    </div>
+    <div class="ins-tab" id="tab-contacts" onclick="switchMainTab('contactsPage', 'tab-contacts')">
+        <i class="fa-solid fa-user-group"></i>
+    </div>
+    <div class="ins-tab">
+        <i class="fa-solid fa-compass"></i>
+    </div>
+    <div class="ins-tab">
+        <i class="fa-solid fa-circle-user"></i>
+    </div>
+</div>
 
     <script>
         // ==== 顶部组件时间动态更新逻辑 ====
@@ -684,6 +1740,13 @@
         // 绑定“主题”APP的点击事件，使其打开主题页
         document.getElementById('app-theme').addEventListener('click', () => showPage('themePage'));
 
+// 绑定“聊天”APP的点击事件，打开聊天页并显示底栏
+document.getElementById('app-chat').addEventListener('click', () => {
+    showPage('chatPage');
+    switchMainTab('chatPage', 'tab-chat'); // 确保默认选中消息 Tab
+    document.getElementById('chatAppTabBar').style.display = 'flex';
+});
+
         // ==== 通用图片上传绑定封装 ====
         function setupImageUpload(imgId, inputId, dbKey) {
             document.getElementById(imgId).addEventListener('click', () => document.getElementById(inputId).click());
@@ -701,6 +1764,18 @@
             });
         }
 
+document.getElementById('insAvatarInput').addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = ev => {
+            // 实时把刚选的图片赋给联系人页的大圆环
+            document.getElementById('contactsRingAvatar').src = ev.target.result; 
+        };
+        reader.readAsDataURL(file);
+    }
+});
+
         // 绑定原来组件的单图
         setupImageUpload('topImg1', 'topInput1', 'dbTopImg1');
         setupImageUpload('topImg2', 'topInput2', 'dbTopImg2');
@@ -708,7 +1783,8 @@
         setupImageUpload('earbudImg1', 'earbudInput1', 'dbEarbudImg1');
         setupImageUpload('earbudImg2', 'earbudInput2', 'dbEarbudImg2');
         setupImageUpload('playerImg', 'playerInput', 'dbPlayerImg');
-        
+        // 绑定聊天页 INS 小组件的头像上传
+setupImageUpload('insAvatarImg', 'insAvatarInput', 'dbInsAvatar');
         // 绑定新拍立得组件的4张图
         setupImageUpload('polaroidAvatarImg', 'polaroidAvatarInput', 'dbPolaroidAvatar');
         setupImageUpload('polaroidRightImg', 'polaroidRightInput', 'dbPolaroidRight');
@@ -841,7 +1917,9 @@
                 { id: 'topImg1', key: 'dbTopImg1' }, { id: 'topImg2', key: 'dbTopImg2' }, { id: 'topImg3', key: 'dbTopImg3' },
                 { id: 'earbudImg1', key: 'dbEarbudImg1' }, { id: 'earbudImg2', key: 'dbEarbudImg2' }, { id: 'playerImg', key: 'dbPlayerImg' },
                 { id: 'polaroidAvatarImg', key: 'dbPolaroidAvatar' }, { id: 'polaroidRightImg', key: 'dbPolaroidRight' },
-                { id: 'polaroidLeftImg', key: 'dbPolaroidLeft' }, { id: 'polaroidBandaidImg', key: 'dbPolaroidBandaid' }
+                { id: 'polaroidLeftImg', key: 'dbPolaroidLeft' }, { id: 'polaroidBandaidImg', key: 'dbPolaroidBandaid' } ,
+                { id: 'insAvatarImg', key: 'dbInsAvatar' } ,
+    { id: 'contactsRingAvatar', key: 'dbInsAvatar' }
             ];
             for(let map of imgMappings){
                 const b64 = await localforage.getItem(map.key);
@@ -849,7 +1927,7 @@
             }
             
             // 2. 恢复文本
-            const textKeys = ['bioText', 'earbudText', 'playerText', 'polaroidText'];
+            const textKeys = ['bioText', 'earbudText', 'playerText', 'polaroidText', 'insAvatarText', 'insNameText', 'insHandleText', 'insDateText', 'insDayText', 'insBubbleText'];
             for (let k of textKeys) {
                 const txt = await localforage.getItem(k);
                 if (txt) document.getElementById(k).innerText = txt;
@@ -1067,6 +2145,870 @@ document.getElementById('importJsonInput').addEventListener('change', function(e
     };
     reader.readAsText(file);
     e.target.value = ''; // 允许重复导入同一个文件
+});
+
+// ==========================================
+//            设 置 页 面 逻 辑
+// ==========================================
+
+// 绑定"设置"APP点击打开设置页
+document.getElementById('app-settings').addEventListener('click', () => showPage('settingsPage'));
+
+// ---- 开关保存/读取 ----
+async function saveToggle(key, value) {
+    await localforage.setItem('toggle_' + key, value);
+}
+async function loadToggles() {
+    const bubble = await localforage.getItem('toggle_apiBubble');
+    if (bubble !== null) document.getElementById('toggleApiBubble').checked = bubble;
+    const alive = await localforage.getItem('toggle_keepAlive');
+    if (alive !== null) document.getElementById('toggleKeepAlive').checked = alive;
+    const mmEnabled = await localforage.getItem('toggle_minimaxEnabled');
+if (mmEnabled !== null) document.getElementById('mmEnableSwitch').checked = mmEnabled;
+}
+
+// ---- API 设置保存/读取 (完整重构) ----
+let currentApiModel = '';
+
+document.getElementById('apiTempSlider').addEventListener('input', e => {
+    document.getElementById('apiTempValue').textContent = e.target.value;
+});
+
+// 密钥显隐切换
+function toggleApiKeyVisible() {
+    const input = document.getElementById('apiKeyInput');
+    const eye = document.getElementById('apiKeyEye');
+    if (input.type === 'password') {
+        input.type = 'text';
+        eye.classList.remove('fa-eye');
+        eye.classList.add('fa-eye-slash');
+    } else {
+        input.type = 'password';
+        eye.classList.remove('fa-eye-slash');
+        eye.classList.add('fa-eye');
+    }
+}
+
+function showLoading(text) {
+    document.getElementById('iosLoadingText').textContent = text || '加载中...';
+    document.getElementById('iosLoading').classList.add('show');
+}
+function hideLoading() {
+    document.getElementById('iosLoading').classList.remove('show');
+}
+
+// 缓存的模型列表
+let cachedModelList = [];
+
+// 点击"当前模型"栏触发
+async function openModelSelector() {
+    // 如果有缓存，直接弹列表
+    if (cachedModelList.length > 0) {
+        showModelSelector(cachedModelList);
+        return;
+    }
+
+    // 没有缓存，先查数据库
+    const saved = await localforage.getItem('cachedModels');
+    if (saved && saved.length > 0) {
+        cachedModelList = saved;
+        showModelSelector(cachedModelList);
+        return;
+    }
+
+    // 数据库也没有，去拉取
+    await fetchModelList();
+}
+
+// 拉取模型列表（仅在没有缓存时调用）
+async function fetchModelList() {
+    const url = document.getElementById('apiUrlInput').value.trim();
+    const key = document.getElementById('apiKeyInput').value.trim();
+
+    if (!url || !key) {
+        showIosAlert('提示', '请先填写 API 地址和密钥后再选择模型。');
+        return;
+    }
+
+    showLoading('正在拉取模型...');
+
+    try {
+        let modelsUrl = url.replace(/\/+$/, '');
+        if (!modelsUrl.endsWith('/models')) {
+            modelsUrl += '/models';
+        }
+
+        const resp = await fetch(modelsUrl, {
+            method: 'GET',
+            headers: {
+                'Authorization': 'Bearer ' + key,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+
+        const json = await resp.json();
+        let models = [];
+
+        if (json.data && Array.isArray(json.data)) {
+            models = json.data.map(m => m.id).sort();
+        } else if (Array.isArray(json)) {
+            models = json.map(m => (typeof m === 'string' ? m : m.id)).sort();
+        }
+
+        hideLoading();
+
+        if (models.length === 0) {
+            showIosAlert('结果', '未获取到可用模型。请检查接口地址是否正确。');
+            return;
+        }
+
+        // 缓存到变量和数据库
+        cachedModelList = models;
+        await localforage.setItem('cachedModels', models);
+
+        showModelSelector(models);
+
+    } catch (err) {
+        hideLoading();
+        console.error(err);
+        showIosAlert('拉取失败', '无法获取模型列表，请检查地址和密钥是否正确。\n\n错误: ' + err.message);
+    }
+}
+
+// 显示模型选择弹窗（底部带刷新按钮）
+function showModelSelector(models) {
+    let html = '<div class="model-list-scroll">';
+    models.forEach(name => {
+        const isSelected = name === currentApiModel;
+        html += `<div class="model-list-item ${isSelected ? 'selected' : ''}" onclick="pickModel('${name.replace(/'/g, "\\'")}')">
+            <span class="model-name">${name}</span>
+            <i class="fa-solid fa-check model-check"></i>
+        </div>`;
+    });
+   
+    document.getElementById('iosModalTitle').innerText = '选择模型';
+    document.getElementById('iosModalMessage').innerHTML = html;
+    document.getElementById('iosModalInput').style.display = 'none';
+    document.getElementById('iosModalConfirm').style.display = 'block';
+document.getElementById('iosModalConfirm').innerText = '重新拉取';
+
+document.getElementById('iosModalConfirm').onclick = () => {
+    document.getElementById('iosModalConfirm').innerText = '确定';
+    refreshModelList();
+};
+
+document.getElementById('iosModalCancel').style.display = 'block';
+document.getElementById('iosModalCancel').innerText = '取消';
+    document.getElementById('iosModal').classList.add('show');
+    document.getElementById('iosModalCancel').onclick = () => document.getElementById('iosModalCancel').onclick = () => {
+    document.getElementById('iosModal').classList.remove('show');
+    document.getElementById('iosModalConfirm').innerText = '确定';
+    document.getElementById('iosModalConfirm').onclick = null;
+};
+}
+
+// 选中模型
+function pickModel(name) {
+    currentApiModel = name;
+    document.getElementById('apiModelDisplay').textContent = name;
+    document.getElementById('iosModal').classList.remove('show');
+}
+
+// 重新拉取（清除缓存后重新拉）
+async function refreshModelList() {
+    document.getElementById('iosModal').classList.remove('show');
+    cachedModelList = [];
+    await localforage.removeItem('cachedModels');
+    await fetchModelList();
+}
+
+// 保存 API 设置
+async function saveApiSettings() {
+    const config = {
+        url: document.getElementById('apiUrlInput').value.trim(),
+        key: document.getElementById('apiKeyInput').value.trim(),
+        model: currentApiModel,
+        temperature: document.getElementById('apiTempSlider').value
+    };
+    await localforage.setItem('apiConfig', config);
+    showIosAlert('保存成功', 'API 配置已安全保存到本地。');
+}
+
+// 读取 API 设置
+async function loadApiSettings() {
+    const config = await localforage.getItem('apiConfig');
+    if (config) {
+        document.getElementById('apiUrlInput').value = config.url || '';
+        document.getElementById('apiKeyInput').value = config.key || '';
+        currentApiModel = config.model || '';
+        document.getElementById('apiModelDisplay').textContent = currentApiModel || '未选择';
+        document.getElementById('apiTempSlider').value = config.temperature || 0.7;
+        document.getElementById('apiTempValue').textContent = config.temperature || '0.7';
+    }
+    const savedModels = await localforage.getItem('cachedModels');
+if (savedModels) cachedModelList = savedModels;
+}
+
+// 清除 API 设置
+async function clearApiSettings() {
+    await localforage.removeItem('apiConfig');
+    cachedModelList = []; await localforage.removeItem('cachedModels');
+    document.getElementById('apiUrlInput').value = '';
+    document.getElementById('apiKeyInput').value = '';
+    currentApiModel = '';
+    document.getElementById('apiModelDisplay').textContent = '未选择';
+    document.getElementById('apiTempSlider').value = 0.7;
+    document.getElementById('apiTempValue').textContent = '0.7';
+    showIosAlert('已清除', 'API 配置已全部清除。');
+}
+
+// ---- API 预设逻辑 ----
+async function saveApiPreset() {
+    const name = await showIosPrompt('保存预设', '请输入 API 预设名称', '例如: GPT-4o 官方');
+    if (!name || name.trim() === '') return;
+
+    const preset = {
+        id: Date.now().toString(),
+        name: name.trim(),
+        config: {
+            url: document.getElementById('apiUrlInput').value.trim(),
+            key: document.getElementById('apiKeyInput').value.trim(),
+            model: currentApiModel,
+            temperature: document.getElementById('apiTempSlider').value
+        }
+    };
+
+    let presets = await localforage.getItem('apiPresets') || [];
+    presets.push(preset);
+    await localforage.setItem('apiPresets', presets);
+    showIosAlert('成功', `预设「${name.trim()}」已保存。`);
+}
+
+async function openApiPresetPage() {
+    let presets = await localforage.getItem('apiPresets') || [];
+    if (presets.length === 0) {
+        showIosAlert('选择预设', '暂无保存的 API 预设。');
+        return;
+    }
+
+    let html = '<div class="model-list-scroll">';
+    presets.forEach((preset, index) => {
+        const maskKey = preset.config.key ? preset.config.key.substring(0, 6) + '••••••' : '未设置';
+        html += `<div style="padding:12px 15px; border-bottom:0.5px solid rgba(0,0,0,0.08); cursor:pointer; display:flex; align-items:center; justify-content:space-between;" onclick="applyApiPreset(${index})">
+            <div style="flex:1; overflow:hidden;">
+                <div style="font-size:15px; font-weight:500; color:var(--text-main); margin-bottom:3px;">${preset.name}</div>
+                <div style="font-size:12px; color:#8e8e93; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                    ${preset.config.model || '无模型'} · ${maskKey}
+                </div>
+            </div>
+            <div style="display:flex; align-items:center; gap:12px;">
+                <i class="fa-solid fa-trash" style="color:#ff3b30; font-size:14px; padding:5px;" onclick="event.stopPropagation(); deleteApiPreset(${index})"></i>
+                <i class="fa-solid fa-chevron-right" style="color:#c7c7cc; font-size:12px;"></i>
+            </div>
+        </div>`;
+    });
+    html += '</div>';
+
+    document.getElementById('iosModalTitle').innerText = '选择预设';
+    document.getElementById('iosModalMessage').innerHTML = html;
+    document.getElementById('iosModalInput').style.display = 'none';
+    document.getElementById('iosModalCancel').style.display = 'block';
+    document.getElementById('iosModalCancel').innerText = '取消';
+    document.getElementById('iosModalConfirm').style.display = 'none';
+    document.getElementById('iosModal').classList.add('show');
+    document.getElementById('iosModalCancel').onclick = () => document.getElementById('iosModal').classList.remove('show');
+}
+
+window.applyApiPreset = async function(index) {
+    const presets = await localforage.getItem('apiPresets') || [];
+    if (presets[index]) {
+        const config = presets[index].config;
+        document.getElementById('apiUrlInput').value = config.url || '';
+        document.getElementById('apiKeyInput').value = config.key || '';
+        currentApiModel = config.model || '';
+        document.getElementById('apiModelDisplay').textContent = currentApiModel || '未选择';
+        document.getElementById('apiTempSlider').value = config.temperature || 0.7;
+        document.getElementById('apiTempValue').textContent = config.temperature || '0.7';
+        document.getElementById('iosModal').classList.remove('show');
+    }
+};
+
+window.deleteApiPreset = async function(index) {
+    let presets = await localforage.getItem('apiPresets') || [];
+    const name = presets[index]?.name || '';
+    presets.splice(index, 1);
+    await localforage.setItem('apiPresets', presets);
+    document.getElementById('iosModal').classList.remove('show');
+    showIosAlert('已删除', `预设「${name}」已移除。`);
+};
+
+let currentMmModel = '';
+
+const minimaxModels = [
+    'Speech-2.8-HD',
+    'Speech-2.8-Turbo',
+    'Speech-2.6-HD',
+    'Speech-2.6-Turbo',
+    'Speech-02-HD',
+    'Speech-02-Turbo'
+];
+
+function openMiniMaxModelSelector() {
+    let html = '<div class="model-list-scroll">';
+    minimaxModels.forEach(name => {
+        const isSelected = name === currentMmModel;
+        html += `<div class="model-list-item ${isSelected ? 'selected' : ''}" onclick="pickMmModel('${name}')">
+            <span class="model-name">${name}</span>
+            <i class="fa-solid fa-check model-check"></i>
+        </div>`;
+    });
+    html += '</div>';
+
+    document.getElementById('iosModalTitle').innerText = '选择 MiniMax 模型';
+    document.getElementById('iosModalMessage').innerHTML = html;
+    document.getElementById('iosModalInput').style.display = 'none';
+    document.getElementById('iosModalConfirm').style.display = 'none';
+    document.getElementById('iosModalCancel').style.display = 'block';
+    document.getElementById('iosModalCancel').innerText = '取消';
+    document.getElementById('iosModal').classList.add('show');
+    document.getElementById('iosModalCancel').onclick = () => document.getElementById('iosModal').classList.remove('show');
+}
+
+function pickMmModel(name) {
+    currentMmModel = name;
+    document.getElementById('mmModelDisplay').textContent = name;
+    document.getElementById('iosModal').classList.remove('show');
+}
+
+async function saveMiniMaxSettings() {
+    const config = {
+        enabled: document.getElementById('mmEnableSwitch').checked,
+        groupId: document.getElementById('mmGroupId').value.trim(),
+        apiKey: document.getElementById('mmApiKey').value.trim(),
+        model: currentMmModel
+    };
+    await localforage.setItem('minimaxConfig', config);
+    showIosAlert('保存成功', 'MiniMax 配置已安全保存到本地。');
+}
+
+async function loadMiniMaxSettings() {
+    const config = await localforage.getItem('minimaxConfig');
+    if (config) {
+        document.getElementById('mmEnableSwitch').checked = config.enabled || false;
+        document.getElementById('mmGroupId').value = config.groupId || '';
+        document.getElementById('mmApiKey').value = config.apiKey || '';
+        currentMmModel = config.model || '';
+        document.getElementById('mmModelDisplay').textContent = currentMmModel || '未选择';
+    }
+}
+
+async function clearMiniMaxSettings() {
+    await localforage.removeItem('minimaxConfig');
+    document.getElementById('mmEnableSwitch').checked = false;
+    document.getElementById('mmGroupId').value = '';
+    document.getElementById('mmApiKey').value = '';
+    currentMmModel = '';
+    document.getElementById('mmModelDisplay').textContent = '未选择';
+    showIosAlert('已清除', 'MiniMax 配置已全部清除。');
+}
+
+// ---- 消息提示音逻辑 ----
+const soundOptions = [
+    { id: 'default', name: '默认' },
+    { id: 'tri-tone', name: '三全音' },
+    { id: 'chime', name: '铃声' },
+    { id: 'glass', name: '玻璃' },
+    { id: 'bamboo', name: '竹韵' },
+    { id: 'chord', name: '和弦' },
+    { id: 'synth', name: '电子' },
+    { id: 'bell', name: '钟声' },
+    { id: 'none', name: '无' }
+];
+
+let currentSound = 'default';
+
+function renderSoundList() {
+    const container = document.getElementById('soundList');
+    container.innerHTML = '';
+    soundOptions.forEach(s => {
+        const isSelected = currentSound === s.id;
+        container.insertAdjacentHTML('beforeend', `
+            <div class="ios-item sound-item ${isSelected ? 'selected' : ''}" onclick="selectSound('${s.id}', '${s.name}')">
+                <div class="item-content">
+                    <div class="item-title">${s.name}</div>
+                </div>
+                <div class="sound-check"><i class="fa-solid fa-check"></i></div>
+            </div>
+        `);
+    });
+}
+
+async function selectSound(id, name) {
+    currentSound = id;
+    await localforage.setItem('notifSound', id);
+    document.getElementById('currentSoundLabel').textContent = name;
+    renderSoundList();
+}
+
+async function loadSoundSetting() {
+    const saved = await localforage.getItem('notifSound');
+    if (saved) {
+        currentSound = saved;
+        const match = soundOptions.find(s => s.id === saved);
+        if (match) document.getElementById('currentSoundLabel').textContent = match.name;
+    }
+    renderSoundList();
+}
+
+document.getElementById('customSoundInput').addEventListener('change', async function(e) {
+    const file = e.target.files[0];
+    if (file) {
+        const customOption = { id: 'custom_' + Date.now(), name: file.name.replace(/\.[^.]+$/, '') };
+        soundOptions.push(customOption);
+        await selectSound(customOption.id, customOption.name);
+        showIosAlert('上传成功', `已添加自定义铃声「${customOption.name}」`);
+    }
+    e.target.value = '';
+});
+
+// ---- 在总初始化函数末尾追加调用 ----
+const _originalLoadGlobalSettings = loadGlobalSettings;
+loadGlobalSettings = async function() {
+    await _originalLoadGlobalSettings();
+    await loadToggles();
+    await loadApiSettings();
+    await loadMiniMaxSettings();
+    await loadSoundSetting();
+};
+
+async function openApiSettingsPage() {
+    await loadApiSettings();
+    showPage('apiSettingsPage');
+}
+
+async function openMiniMaxPage() {
+    await loadMiniMaxSettings();
+    showPage('minimaxPage');
+}
+
+// ==========================================
+//          底栏 Tab 切换逻辑
+// ==========================================
+function switchMainTab(pageId, tabId) {
+    // 隐藏聊天和联系人页面
+    document.getElementById('chatPage').classList.remove('active');
+    document.getElementById('contactsPage').classList.remove('active');
+    
+    // 取消所有 Tab 高亮
+    document.querySelectorAll('.ins-tab').forEach(el => el.classList.remove('active'));
+    
+    // 显示目标页面和高亮
+    document.getElementById(pageId).classList.add('active');
+    if(document.getElementById(tabId)) {
+        document.getElementById(tabId).classList.add('active');
+    }
+
+    // 如果切到了联系人，渲染列表
+    if(pageId === 'contactsPage') {
+        renderContactsList();
+    }
+}
+
+// ==========================================
+//          联系人与新增角色逻辑 (高级版)
+// ==========================================
+let rolesList = []; // 存放所有角色的数组
+
+// ====== 新增角色：专属头像上传逻辑 ======
+document.getElementById('newRoleAvatarBox').addEventListener('click', function() {
+    document.getElementById('newRoleAvatarInput').click();
+});
+
+document.getElementById('newRoleAvatarInput').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(ev) {
+            const base64 = ev.target.result;
+            // 1. 改变界面上的预览图
+            document.getElementById('newRoleAvatarPreview').src = base64;
+            // 2. 将图片存入临时缓存，供稍后保存时使用
+            localforage.setItem('tempRoleAvatar', base64);
+        };
+        reader.readAsDataURL(file);
+    }
+    // 清空 input，允许重新选择相同图片
+    e.target.value = '';
+});
+
+// 渲染高级版联系人列表
+async function renderContactsList() {
+    const savedRoles = await localforage.getItem('dbRolesList');
+    if (savedRoles) rolesList = savedRoles;
+
+    const container = document.getElementById('contactsListContainer');
+    container.innerHTML = '';
+
+    if (rolesList.length === 0) {
+        container.insertAdjacentHTML('beforeend', '<div style="text-align:center; padding: 40px; color:#aaa; font-size:13px;">档案库空空如也，点击右上角新建角色。</div>');
+        return;
+    }
+
+    const groupedData = {};
+    rolesList.forEach(role => {
+        const groupName = role.group || '未分组角色';
+        if (!groupedData[groupName]) groupedData[groupName] = [];
+        groupedData[groupName].push(role);
+    });
+
+    for (const group in groupedData) {
+        container.insertAdjacentHTML('beforeend', `<div class="contact-group-label">${group}</div>`);
+        groupedData[group].forEach(role => {
+            const html = `
+                <div class="contact-list-card">
+                    <img class="cl-avatar" src="${role.avatar}">
+                    <div class="cl-info">
+                        <div class="cl-name">${role.name}</div>
+                        <div class="cl-desc">${role.remark ? role.remark : (role.persona ? role.persona : '暂无档案信息')}</div>
+                    </div>
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', html);
+        });
+    }
+}
+
+// 保存新角色 (档案卡版本)
+async function saveNewRole() {
+    const name = document.getElementById('roleName').value.trim();
+    if (!name) {
+        showIosAlert('提示', '名字不能为空哦！');
+        return;
+    }
+
+    // 获取之前通过 input 传上去暂存的头像，如果没有则用默认
+    const avatar = await localforage.getItem('tempRoleAvatar') || document.getElementById('newRoleAvatarPreview').src;
+
+    const newRole = {
+        id: 'role_' + Date.now(),
+        avatar: avatar,
+        name: name,
+        remark: document.getElementById('roleRemark').value.trim(),
+        group: document.getElementById('roleGroup').value.trim() || '我的好友',
+        persona: document.getElementById('rolePersona').value.trim(),
+        voiceId: document.getElementById('roleVoiceId').value.trim(),
+        worldbook: document.getElementById('roleWorldbook').value.trim()
+    };
+
+    // 保存到数组并写入数据库
+    rolesList.push(newRole);
+    await localforage.setItem('dbRolesList', rolesList);
+
+    // 清空表单和暂存头像
+    document.getElementById('roleName').value = '';
+    document.getElementById('roleRemark').value = '';
+    document.getElementById('roleGroup').value = '';
+    document.getElementById('rolePersona').value = '';
+    document.getElementById('roleVoiceId').value = '';
+    document.getElementById('roleWorldbook').value = '';
+    document.getElementById('newRoleAvatarPreview').src = 'https://api.dicebear.com/7.x/notionists/svg?seed=new&backgroundColor=e0e0e0';
+    await localforage.removeItem('tempRoleAvatar');
+
+    // 重新渲染并返回联系人列表
+    renderContactsList();
+    hidePage('addRolePage');
+    document.getElementById('chatAppTabBar').style.display = 'flex';
+}
+
+// ====== 新增聊天室逻辑 (真实记忆 + AI 对接) ======
+let currentChatTarget = null;
+let chatHistoryDB = {}; // 本地聊天记录数据库
+
+// 页面加载时，必须先读取角色列表，再去读取聊天记录
+async function loadChatHistory() {
+    // 1. 先把联系人(角色)数据拉出来，不然聊天列表不认识是谁
+    const savedRoles = await localforage.getItem('dbRolesList');
+    if (savedRoles) rolesList = savedRoles;
+
+    // 2. 再拉取聊天记录
+    const saved = await localforage.getItem('appChatHistory');
+    if (saved) chatHistoryDB = saved;
+    
+    // 3. 最后渲染外层消息列表
+    renderSessionList();
+}
+window.addEventListener('DOMContentLoaded', loadChatHistory);
+
+function toggleChatMenu(event) {
+    document.getElementById('chatPlusMenu').classList.toggle('show');
+    event.stopPropagation();
+}
+document.addEventListener('click', () => { document.getElementById('chatPlusMenu').classList.remove('show'); });
+
+function openChatContactSelector() {
+    document.getElementById('chatPlusMenu').classList.remove('show');
+    const listDiv = document.getElementById('chatContactList');
+    listDiv.innerHTML = '';
+    if (rolesList.length === 0) {
+        listDiv.innerHTML = '<div style="text-align:center; padding: 30px; color:#999; font-size: 14px;">暂无联系人</div>';
+    } else {
+        rolesList.forEach(role => {
+            listDiv.insertAdjacentHTML('beforeend', `<div class="modal-list-item" onclick="startRealChat('${role.id}')"><img class="modal-list-avatar" src="${role.avatar}"><div style="font-size: 15px; font-weight: 600; color: #111;">${role.name}</div></div>`);
+        });
+    }
+    document.getElementById('chatContactModal').classList.add('show');
+}
+function closeChatContactSelector() { document.getElementById('chatContactModal').classList.remove('show'); }
+
+
+function getChatTime() {
+    const now = new Date();
+    return now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+}
+
+// 进入真实聊天
+function startRealChat(roleId) {
+    closeChatContactSelector();
+    currentChatTarget = rolesList.find(r => r.id === roleId);
+    if(!currentChatTarget) return;
+
+    document.getElementById('activeChatTitle').innerText = currentChatTarget.name;
+    const chatArea = document.getElementById('activeChatArea');
+    chatArea.innerHTML = ''; 
+
+    // 渲染历史记录
+    if (!chatHistoryDB[roleId]) chatHistoryDB[roleId] = [];
+    const myAvatar = document.getElementById('insAvatarImg').src;
+    
+    chatHistoryDB[roleId].forEach(msg => {
+        appendMessage(msg.sender === 'me' ? myAvatar : currentChatTarget.avatar, msg.text, msg.sender);
+    });
+
+    showPage('activeChatPage');
+}
+
+// 往界面塞气泡
+function appendMessage(avatarSrc, text, type, id = '') {
+    const chatArea = document.getElementById('activeChatArea');
+    const html = `<div class="msg-row ${type}" ${id ? `id="${id}"` : ''}><img class="msg-avatar" src="${avatarSrc}"><div class="msg-bubble">${text}</div></div>`;
+    chatArea.insertAdjacentHTML('beforeend', html);
+    chatArea.scrollTop = chatArea.scrollHeight; 
+}
+
+// 核心发送逻辑：只发消息，不上报API
+async function sendUserMessageOnly() {
+    const input = document.getElementById('chatInput');
+    const text = input.value.trim();
+    if (!text || !currentChatTarget) return;
+
+    const myAvatar = document.getElementById('insAvatarImg').src;
+    const roleId = currentChatTarget.id;
+    const timeNow = getChatTime();
+
+    // 1. 发送并保存我的消息
+    appendMessage(myAvatar, text, 'me');
+    chatHistoryDB[roleId].push({ sender: 'me', text: text, time: timeNow });
+    await localforage.setItem('appChatHistory', chatHistoryDB);
+    
+    input.value = ''; 
+    renderSessionList(); // 更新外层列表
+}
+
+// 核心回复逻辑：主动点击触发API，读取最新上下文
+async function triggerAiReply() {
+    if (!currentChatTarget) return;
+    const roleId = currentChatTarget.id;
+
+    // 体验优化：如果此时输入框有字没发，帮你先发出去
+    const input = document.getElementById('chatInput');
+    if (input.value.trim()) {
+        await sendUserMessageOnly();
+    }
+
+    // 2. 显示 AI 思考动画
+    const typingId = 'typing_' + Date.now();
+    const typingHtml = `<div class="typing-dots"><span></span><span></span><span></span></div>`;
+    appendMessage(currentChatTarget.avatar, typingHtml, 'other', typingId);
+
+    // 3. 调用 API 获取回复
+    let rawReply = await fetchAIResponse(currentChatTarget);
+
+    // 4. 移除最初的加载动画
+    const typingEl = document.getElementById(typingId);
+    if(typingEl) typingEl.remove();
+
+    // 5. 按换行符拆分成数组，过滤空行，限制最多连续8条防止刷屏
+    let replyArr = rawReply.split('\n').map(s => s.trim()).filter(s => s.length > 0).slice(0, 8);
+
+    // 6. 循环渲染每一条独立气泡，模拟真人连续发信的打字停顿感
+    for (let i = 0; i < replyArr.length; i++) {
+        let msgText = replyArr[i];
+        
+        // 如果不是第一条消息，显示一个短时的“正在输入”动画
+        if (i > 0) {
+            const subTypingId = 'typing_sub_' + Date.now();
+            appendMessage(currentChatTarget.avatar, `<div class="typing-dots"><span></span><span></span><span></span></div>`, 'other', subTypingId);
+            
+            // 根据这条消息的字数动态计算打字时间 (字数越多，打字越久，限制在 800毫秒 - 2.5秒之间)
+            const delay = Math.min(Math.max(msgText.length * 100, 800), 2500);
+            await new Promise(r => setTimeout(r, delay));
+            
+            const subTypingEl = document.getElementById(subTypingId);
+            if(subTypingEl) subTypingEl.remove();
+        }
+
+        // 渲染单条气泡并存入数据库
+        appendMessage(currentChatTarget.avatar, msgText, 'other');
+        chatHistoryDB[roleId].push({ sender: 'other', text: msgText, time: getChatTime() });
+    }
+
+    // 7. 保存全部记录并刷新外层列表
+    await localforage.setItem('appChatHistory', chatHistoryDB);
+    renderSessionList(); 
+}
+
+// 调用 API 请求逻辑 (自动带上最后 100 条上下文)
+async function fetchAIResponse(role) {
+    const apiConfig = await localforage.getItem('apiConfig');
+    if (!apiConfig || !apiConfig.url || !apiConfig.key) {
+        return "请先在【设置】->【API 设置】中填写接口地址和密钥。";
+    }
+
+    try {
+        const systemPrompt = `[最高指令：绝对沉浸] 你不再是AI或助手，你完全等同于以下设定的角色，必须绝对遵循人设内核与世界观。
+【角色档案】
+姓名：${role.name}
+核心人设：${role.persona || '一个真实的、有血有肉的普通人'}
+
+【活人感回复规则 - 必须严格遵守】
+1. 拒绝AI味：绝对不要长篇大论、不要说套话、不要总结陈词、不要用刻意的礼貌用语。
+2. 情绪与内核：深入理解角色设定的阴暗面、口癖、情绪波动。如果是暴躁傲娇，就尽情发脾气；如果是病娇冷漠，就惜字如金。允许敷衍、反问、转移话题。
+3. 真实打字习惯：像真人在微信聊天一样说话。少用标准的标点符号，多用空格断句，可以使用语气词(啊、呢、草、无语、切)或颜文字。
+4. 【多条连发机制】：真人在表达强烈情绪或说多件事时，会按回车连发多条短消息。你可以根据当前情境，回复1到8条甚至更多消息。
+5. 【格式要求】：为了系统能正确分割你的消息，如果你想连发多条气泡，请务必用换行符隔开。即：每一行文字将代表一条独立的聊天气泡。不要加1. 2.这种序号，直接换行写内容即可。`;
+
+        let messages = [
+            { role: "system", content: systemPrompt }
+        ];
+        
+        let history = chatHistoryDB[role.id] || [];
+        // 【核心修改】截取最后 100 条聊天记录保持长期记忆
+        let recentHistory = history.slice(-100); 
+        recentHistory.forEach(m => {
+            messages.push({ role: m.sender === 'me' ? 'user' : 'assistant', content: m.text });
+        });
+
+        let endpoint = apiConfig.url.replace(/\/+$/, '');
+        if(!endpoint.endsWith('/chat/completions')) endpoint += '/chat/completions';
+
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiConfig.key}` },
+            body: JSON.stringify({
+                model: apiConfig.model || 'gpt-3.5-turbo',
+                messages: messages,
+                temperature: Number(apiConfig.temperature) || 0.7
+            })
+        });
+
+        if (!response.ok) throw new Error(`HTTP 错误 ${response.status}`);
+        const data = await response.json();
+        return data.choices[0].message.content;
+
+    } catch (e) {
+        console.error(e);
+        return `连接失败 (请检查网络或 API 设置) \n报错: ${e.message}`;
+    }
+}
+
+// 渲染外层消息列表
+function renderSessionList() {
+    const sessionList = document.getElementById('chatSessionList');
+    if(!sessionList) return;
+    sessionList.innerHTML = '';
+
+    // 将数据库转为数组并根据最后一条消息的时间/逻辑排序（这里简化为按遍历顺序渲染，最新的插在前面）
+    Object.keys(chatHistoryDB).forEach(roleId => {
+        const history = chatHistoryDB[roleId];
+        if(history.length === 0) return;
+        
+        const role = rolesList.find(r => r.id === roleId);
+        if(!role) return;
+
+        const lastMsg = history[history.length - 1];
+        let previewText = lastMsg.text;
+        // 如果是动画残留代码，过滤一下预览
+        if(previewText.includes('typing-dots')) previewText = '[正在输入]';
+
+        const html = `
+            <div class="ins-msg-item" onclick="startRealChat('${role.id}')">
+                <img src="${role.avatar}" class="ins-msg-avatar" style="border: 1px solid #f0f0f0; object-fit: cover;">
+                <div class="ins-msg-content">
+                    <div class="ins-msg-top">
+                        <span class="ins-msg-name">${role.name}</span>
+                        <span class="ins-msg-time">${lastMsg.time}</span>
+                    </div>
+                    <div class="ins-msg-preview" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 80%;">${previewText}</div>
+                </div>
+            </div>
+        `;
+        sessionList.insertAdjacentHTML('afterbegin', html);
+    });
+}
+
+// ====== 导入 TXT/DOCX 到人设的逻辑 ======
+document.getElementById('importPersonaInput').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const fileName = file.name.toLowerCase();
+    const textarea = document.getElementById('rolePersona');
+    const originalPlaceholder = textarea.placeholder;
+    
+    // 给用户一个视觉反馈
+    textarea.value = '';
+    textarea.placeholder = '文件解析中，请稍候...';
+
+    // 1. 处理 TXT 文件 (浏览器原生支持)
+    if (fileName.endsWith('.txt')) {
+        const reader = new FileReader();
+        reader.onload = function(ev) {
+            textarea.value = ev.target.result;
+            textarea.placeholder = originalPlaceholder;
+        };
+        reader.onerror = () => { showIosAlert('读取失败', '无法读取该 txt 文件。'); };
+        reader.readAsText(file);
+    } 
+    // 2. 处理 Word (DOCX) 文件 (依赖 mammoth.js)
+    else if (fileName.endsWith('.docx')) {
+        const reader = new FileReader();
+        reader.onload = function(ev) {
+            const arrayBuffer = ev.target.result;
+            mammoth.extractRawText({ arrayBuffer: arrayBuffer })
+                .then(function(result) {
+                    // result.value 就是提取出来的纯文本
+                    textarea.value = result.value;
+                    textarea.placeholder = originalPlaceholder;
+                })
+                .catch(function(err) {
+                    console.error(err);
+                    showIosAlert('解析失败', '无法解析该 Word 文件。可能是文档加密或格式损坏，请尝试转为 txt 格式后重试。');
+                    textarea.placeholder = originalPlaceholder;
+                });
+        };
+        reader.onerror = () => { showIosAlert('读取失败', '无法读取该 docx 文件。'); };
+        reader.readAsArrayBuffer(file);
+    } 
+    // 3. 拦截不支持的格式 (如老版本的 .doc)
+    else {
+        showIosAlert('格式错误', '目前仅支持导入 .txt 或 .docx 格式的文档哦！老版本的 .doc 建议先另存为 .docx');
+        textarea.placeholder = originalPlaceholder;
+    }
+
+    // 清空 input，允许用户重复选择同一个文件
+    e.target.value = '';
 });
 
     </script>
