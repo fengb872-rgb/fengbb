@@ -758,7 +758,7 @@
 
 .msg-row { 
     display: flex; align-items: flex-start; /* 改成靠上对齐，气泡自然往下伸长 */
-    gap: 10px; width: 100%; margin-bottom: 6px; 
+    gap: 10px; width: 100%; margin-bottom: 3px; 
 }
 
 .msg-avatar { 
@@ -766,10 +766,12 @@
     object-fit: cover; flex-shrink: 0; border: 1px solid #f0f0f0; 
 }
 
+/* 修改：气泡变小，与头像等高居中 */
 .msg-bubble {
-    max-width: 68%; padding: 10px 15px; font-size: 15px; line-height: 1.5; word-wrap: break-word;
-    border-radius: 18px; min-height: 20px; box-sizing: border-box;
-    /* 删除了旧代码里的 display: flex 和 align-items: center，恢复正常文本流 */
+    max-width: 75%; /* 把 68% 改为 82%，让气泡可以往右延伸更长 */
+    padding: 8px 14px; font-size: 15px; line-height: 1.5; word-wrap: break-word;
+    border-radius: 18px; min-height: 40px; box-sizing: border-box; 
+    /* 删除了 display: flex 和 align-items: center，多行文字排版会更自然 */
 }
 
 /* 对方：白底黑字 */
@@ -812,14 +814,11 @@
 }
 .chat-reply-btn:active { transform: scale(0.9); background: #f5f5f5; }
 
-/* 修改：气泡变小，与头像等高居中 */
-.msg-bubble {
-    max-width: 68%; padding: 8px 14px; font-size: 15px; line-height: 1.4; word-wrap: break-word;
-    border-radius: 18px; min-height: 40px; box-sizing: border-box; display: flex; align-items: center;
-}
+/* 新增：AI 回复时的打字点点点动画 */
 
 /* 新增：AI 回复时的打字点点点动画 */
-.typing-dots { display: flex; gap: 4px; align-items: center; justify-content: center; min-width: 30px; }
+.typing-dots { display: flex; gap: 4px; align-items: center; justify-content: center; min-width: 30px; height: 22px; }
+
 .typing-dots span { width: 5px; height: 5px; background: #888; border-radius: 50%; animation: typingAnim 1.2s infinite ease-in-out; }
 .typing-dots span:nth-child(1) { animation-delay: 0s; }
 .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
@@ -827,6 +826,106 @@
 @keyframes typingAnim {
     0%, 100% { transform: translateY(0); }
     50% { transform: translateY(-3px); background: #333; }
+}
+
+/* ========================================= */
+/*           完美版：语音条与独立转文字样式     */
+/* ========================================= */
+
+/* 黑白灰语音模拟弹窗样式 */
+.voice-modal-overlay {
+    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+    background: rgba(0,0,0,0.4); z-index: 9999;
+    display: none; justify-content: center; align-items: center; opacity: 0; transition: opacity 0.2s;
+}
+.voice-modal-overlay.show { display: flex; opacity: 1; }
+.voice-modal-content {
+    width: 80%; max-width: 300px; padding: 25px 20px 20px;
+    border-radius: 24px; text-align: center; background: #fff;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+    transform: scale(1.1); transition: transform 0.2s ease;
+}
+.voice-modal-overlay.show .voice-modal-content { transform: scale(1); }
+
+/* 消息列包装器：让气泡和转文字能上下独立排列 */
+.msg-content-col {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start; /* 对方发的消息，整体靠左 */
+    max-width: 75%;
+}
+/* 自己发的消息，整体靠右 */
+.msg-row.me .msg-content-col {
+    align-items: flex-end; 
+}
+/* 覆盖原有的最大宽度限制，交由外层 col 控制 */
+.msg-bubble {
+    max-width: 100% !important; 
+}
+
+/* 语音条内部布局 */
+.voice-bar-inner {
+    display: flex; align-items: center; gap: 10px;
+    min-width: 80px; /* 语音条最短宽度 */
+    height: 24px;
+}
+.voice-play-btn { font-size: 24px; opacity: 0.95; }
+
+/* 纯 CSS 绘制音轨波形图 (自动继承气泡文字颜色) */
+.voice-wave {
+    display: flex; align-items: center; gap: 3.5px; height: 16px; margin-right: auto;
+}
+.voice-wave span {
+    display: inline-block; width: 3px; background-color: currentColor; border-radius: 2px; opacity: 0.8;
+}
+.voice-wave span:nth-child(1) { height: 40%; }
+.voice-wave span:nth-child(2) { height: 100%; }
+.voice-wave span:nth-child(3) { height: 70%; }
+.voice-wave span:nth-child(4) { height: 50%; }
+
+.voice-time { font-size: 15px; font-weight: 500; font-family: -apple-system, sans-serif; }
+
+/* 独立的转文字卡片 (不拉伸原气泡) */
+.voice-translated-text {
+    display: none; /* 默认隐藏 */
+    background: #ffffff; /* 永远是白底黑字 */
+    color: #111;
+    padding: 12px 16px;
+    border-radius: 14px;
+    font-size: 14px;
+    line-height: 1.5;
+    margin-top: 8px; /* 和上面的语音气泡留出空隙 */
+    box-shadow: 0 4px 15px rgba(0,0,0,0.06);
+    border: 1px solid #f0f0f0;
+    word-wrap: break-word;
+    animation: voiceFadeIn 0.2s ease;
+}
+.voice-translated-text.show {
+    display: block;
+}
+@keyframes voiceFadeIn {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* ========================================= */
+/*           发图片与系统提示语样式           */
+/* ========================================= */
+/* 聊天气泡里的图片 */
+.chat-bubble-img {
+    max-width: 200px;
+    border-radius: 14px;
+    object-fit: cover;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    display: block;
+}
+/* 系统居中提示 */
+.msg-system {
+    text-align: center; margin: 15px 0; width: 100%; display: flex; justify-content: center;
+}
+.msg-system span {
+    background: rgba(0,0,0,0.06); color: #888; font-size: 11px;
+    padding: 5px 14px; border-radius: 20px; font-weight: 500;
 }
 
     </style>
@@ -1000,17 +1099,22 @@
     <img id="contactsRingAvatar" src="https://api.dicebear.com/7.x/notionists/svg?seed=Create&backgroundColor=f5f5f5" alt="avatar">
 </div>
             <!-- 右下角悬浮加号 -->
-<div class="ring-plus" onclick="showPage('addRolePage'); document.getElementById('chatAppTabBar').style.display = 'none';">
+<div class="ring-plus" onclick="openAddRole()">
     <i class="fa-solid fa-plus"></i>
 </div>
         </div>
     </div>
 
-    <!-- 极简搜索框 -->
-    <div style="padding: 0 20px 10px; flex-shrink: 0;">
-        <div style="background: #f0f0f0; border-radius: 14px; padding: 10px 15px; display: flex; align-items: center; gap: 8px;">
+    <!-- 极简搜索框 + 新建分组按钮 -->
+    <div style="padding: 0 20px 10px; flex-shrink: 0; display: flex; gap: 10px; align-items: center;">
+        <div style="background: #f0f0f0; border-radius: 14px; padding: 10px 15px; display: flex; align-items: center; gap: 8px; flex: 1;">
             <i class="fa-solid fa-magnifying-glass" style="color: #999; font-size: 14px;"></i>
-            <input type="text" placeholder="搜索联系人" style="border: none; background: transparent; outline: none; flex: 1; font-size: 14px; color: #111;">
+            <!-- 加上了 id 和 oninput 触发器 -->
+<input type="text" id="contactSearchInput" oninput="renderContactsList()" placeholder="搜索联系人" style="border: none; background: transparent; outline: none; width: 100%; font-size: 14px; color: #111;">
+        </div>
+        <!-- 新增分组按钮 -->
+        <div style="width: 38px; height: 38px; background: #f0f0f0; border-radius: 12px; display: flex; justify-content: center; align-items: center; cursor: pointer;" onclick="createNewGroup()">
+            <i class="fa-solid fa-folder-plus" style="color: #111; font-size: 16px;"></i>
         </div>
     </div>
 
@@ -1025,7 +1129,7 @@
     <!-- 极简头部 -->
     <div style="padding: 55px 20px 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f9f9f9; flex-shrink: 0;">
       <i class="fa-solid fa-xmark" style="font-size: 22px; color: #111; cursor: pointer;" onclick="hidePage('addRolePage'); document.getElementById('chatAppTabBar').style.display = 'flex';"></i>
-        <div style="font-size: 16px; font-weight: 600; color: #111;">新建角色</div>
+       <div id="addRolePageTitle" style="font-size: 16px; font-weight: 600; color: #111;">新建角色</div>
         <div style="font-size: 15px; font-weight: 600; color: #111; cursor: pointer;" onclick="saveNewRole()">保存</div>
     </div>
 
@@ -1049,9 +1153,12 @@
             <input type="text" id="roleRemark" class="minimal-input" placeholder="给他的备注昵称">
         </div>
 
-        <div class="minimal-form-item">
+       <div class="minimal-form-item">
             <div class="minimal-label">所在分组</div>
-            <input type="text" id="roleGroup" class="minimal-input" placeholder="默认为：我的好友">
+            <div class="minimal-input" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;" onclick="openGroupSelector()">
+                <span id="roleGroupText">我的好友</span>
+                <i class="fa-solid fa-chevron-right" style="color: #ccc; font-size: 12px;"></i>
+            </div>
         </div>
 
      <div class="minimal-form-item">
@@ -1670,7 +1777,7 @@
     </div>
 
     <!-- 聊天记录区 -->
-    <div id="activeChatArea" style="flex: 1; overflow-y: auto; padding: 20px 15px; display: flex; flex-direction: column; gap: 20px; padding-bottom: 30px;"></div>
+    <div id="activeChatArea" style="flex: 1; overflow-y: auto; padding: 20px 15px; display: flex; flex-direction: column; gap: 8px; padding-bottom: 30px;"></div>
 
     <!-- QQ 风格底部输入栏 -->
     <div class="qq-bottom-bar">
@@ -1691,8 +1798,9 @@
         
         <!-- 功能图标排版 (两边内缩) -->
         <div class="qq-icon-row">
-            <i class="fa-solid fa-microphone"></i>
-            <i class="fa-regular fa-image"></i>
+          <i class="fa-solid fa-microphone" onclick="openVoiceModal()"></i>
+           <!-- 第二个图标：相册图片 -->
+<i class="fa-regular fa-image" onclick="document.getElementById('chatImageUpload').click()"></i>
             <i class="fa-solid fa-camera"></i>
             <i class="fa-regular fa-face-smile"></i>
             <i class="fa-solid fa-rotate-left"></i>
@@ -1717,6 +1825,20 @@
         <i class="fa-solid fa-circle-user"></i>
     </div>
 </div>
+
+<!-- 黑白灰语音模拟弹窗 -->
+<div class="voice-modal-overlay" id="voiceModal">
+    <div class="voice-modal-content">
+        <div style="font-size: 16px; font-weight: 600; color: #111; margin-bottom: 15px;">发送语音文字</div>
+        <input type="text" id="voiceModalInput" style="width: 100%; background: #f5f5f5; border: none; border-radius: 12px; padding: 12px 15px; font-size: 15px; box-sizing: border-box; outline: none; margin-bottom: 20px; color: #111;" placeholder="输入你想说的语音内容..." onkeypress="if(event.key === 'Enter') confirmVoiceModal()">
+        <div style="display: flex; gap: 10px;">
+            <div style="flex: 1; padding: 12px 0; background: #f5f5f5; color: #111; border-radius: 12px; font-weight: 600; cursor: pointer;" onclick="closeVoiceModal()">取消</div>
+            <div style="flex: 1; padding: 12px 0; background: #111; color: #fff; border-radius: 12px; font-weight: 600; cursor: pointer;" onclick="confirmVoiceModal()">发送</div>
+        </div>
+    </div>
+</div>
+
+<input type="file" id="chatImageUpload" accept="image/*" multiple style="display: none;">
 
     <script>
         // ==== 顶部组件时间动态更新逻辑 ====
@@ -2670,34 +2792,40 @@ function switchMainTab(pageId, tabId) {
     }
 }
 
-// ==========================================
-//          联系人与新增角色逻辑 (高级版)
-// ==========================================
 let rolesList = []; // 存放所有角色的数组
+let customGroups = ['我的好友']; // 默认自带分组
+let collapsedGroups = {}; // 记录哪些分组被收起
+let currentEditingRoleId = null; // 标记当前是新建还是编辑
+
+// 初始化读取自定义分组
+async function loadCustomGroups() {
+    const saved = await localforage.getItem('dbCustomGroups');
+    if (saved) customGroups = saved;
+}
+window.addEventListener('DOMContentLoaded', loadCustomGroups);
 
 // ====== 新增角色：专属头像上传逻辑 ======
-document.getElementById('newRoleAvatarBox').addEventListener('click', function() {
-    document.getElementById('newRoleAvatarInput').click();
-});
-
+document.getElementById('newRoleAvatarBox').addEventListener('click', function() { document.getElementById('newRoleAvatarInput').click(); });
 document.getElementById('newRoleAvatarInput').addEventListener('change', function(e) {
     const file = e.target.files[0];
     if (file) {
         const reader = new FileReader();
         reader.onload = function(ev) {
-            const base64 = ev.target.result;
-            // 1. 改变界面上的预览图
-            document.getElementById('newRoleAvatarPreview').src = base64;
-            // 2. 将图片存入临时缓存，供稍后保存时使用
-            localforage.setItem('tempRoleAvatar', base64);
+            document.getElementById('newRoleAvatarPreview').src = ev.target.result;
+            localforage.setItem('tempRoleAvatar', ev.target.result);
         };
         reader.readAsDataURL(file);
     }
-    // 清空 input，允许重新选择相同图片
     e.target.value = '';
 });
 
-// 渲染高级版联系人列表
+// QQ折叠式：切换分组展开/收起状态
+window.toggleGroup = function(groupName) {
+    collapsedGroups[groupName] = !collapsedGroups[groupName];
+    renderContactsList();
+};
+
+// 渲染高级版联系人列表 (带实时搜索过滤)
 async function renderContactsList() {
     const savedRoles = await localforage.getItem('dbRolesList');
     if (savedRoles) rolesList = savedRoles;
@@ -2705,76 +2833,172 @@ async function renderContactsList() {
     const container = document.getElementById('contactsListContainer');
     container.innerHTML = '';
 
-    if (rolesList.length === 0) {
-        container.insertAdjacentHTML('beforeend', '<div style="text-align:center; padding: 40px; color:#aaa; font-size:13px;">档案库空空如也，点击右上角新建角色。</div>');
-        return;
-    }
+    // 获取搜索框里输入的文字，转成小写
+    const searchInput = document.getElementById('contactSearchInput');
+    const searchText = searchInput ? searchInput.value.trim().toLowerCase() : '';
 
     const groupedData = {};
-    rolesList.forEach(role => {
-        const groupName = role.group || '未分组角色';
+    customGroups.forEach(g => groupedData[g] = []); 
+
+    // 1. 过滤：只保留名字或备注中包含搜索词的角色
+    const filteredRoles = rolesList.filter(role => {
+        if (!searchText) return true; // 没输入搜索词就全部显示
+        const matchName = (role.name || '').toLowerCase().includes(searchText);
+        const matchRemark = (role.remark || '').toLowerCase().includes(searchText);
+        return matchName || matchRemark;
+    });
+
+    // 2. 分组
+    filteredRoles.forEach(role => {
+        const groupName = role.group || '我的好友';
         if (!groupedData[groupName]) groupedData[groupName] = [];
         groupedData[groupName].push(role);
     });
 
+    // 3. 渲染
     for (const group in groupedData) {
-        container.insertAdjacentHTML('beforeend', `<div class="contact-group-label">${group}</div>`);
+        // 【关键体验优化】：如果正在搜索，并且这个分组下没有搜到人，就直接隐藏整个分组，让界面更清爽
+        if (searchText && groupedData[group].length === 0) continue;
+
+        // 【关键体验优化】：如果正在搜索，强制展开所有分组，否则按用户自己折叠的状态显示
+        const isCollapsed = searchText ? false : collapsedGroups[group];
+        const arrowClass = isCollapsed ? 'fa-chevron-right' : 'fa-chevron-down';
+        
+        // 渲染分组表头
+        container.insertAdjacentHTML('beforeend', `
+            <div class="contact-group-label" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;" onclick="toggleGroup('${group}')">
+                <span>${group} <span style="color:#ccc; margin-left:4px;">${groupedData[group].length}</span></span>
+                <i class="fa-solid ${arrowClass}" style="font-size: 10px; color: #ccc;"></i>
+            </div>
+        `);
+
+        // 渲染好友卡片
+        const contentDiv = document.createElement('div');
+        contentDiv.style.display = isCollapsed ? 'none' : 'block';
+        
         groupedData[group].forEach(role => {
-            const html = `
-                <div class="contact-list-card">
+            contentDiv.insertAdjacentHTML('beforeend', `
+                <div class="contact-list-card" onclick="openEditRole('${role.id}')" style="cursor: pointer;">
                     <img class="cl-avatar" src="${role.avatar}">
                     <div class="cl-info">
                         <div class="cl-name">${role.name}</div>
                         <div class="cl-desc">${role.remark ? role.remark : (role.persona ? role.persona : '暂无档案信息')}</div>
                     </div>
                 </div>
-            `;
-            container.insertAdjacentHTML('beforeend', html);
+            `);
         });
+        container.appendChild(contentDiv);
     }
 }
 
-// 保存新角色 (档案卡版本)
-async function saveNewRole() {
-    const name = document.getElementById('roleName').value.trim();
-    if (!name) {
-        showIosAlert('提示', '名字不能为空哦！');
-        return;
-    }
-
-    // 获取之前通过 input 传上去暂存的头像，如果没有则用默认
-    const avatar = await localforage.getItem('tempRoleAvatar') || document.getElementById('newRoleAvatarPreview').src;
-
-    const newRole = {
-        id: 'role_' + Date.now(),
-        avatar: avatar,
-        name: name,
-        remark: document.getElementById('roleRemark').value.trim(),
-        group: document.getElementById('roleGroup').value.trim() || '我的好友',
-        persona: document.getElementById('rolePersona').value.trim(),
-        voiceId: document.getElementById('roleVoiceId').value.trim(),
-        worldbook: document.getElementById('roleWorldbook').value.trim()
-    };
-
-    // 保存到数组并写入数据库
-    rolesList.push(newRole);
-    await localforage.setItem('dbRolesList', rolesList);
-
-    // 清空表单和暂存头像
+// 打开“新建角色”
+window.openAddRole = function() {
+    currentEditingRoleId = null;
+    document.getElementById('addRolePageTitle').innerText = '新建角色';
     document.getElementById('roleName').value = '';
     document.getElementById('roleRemark').value = '';
-    document.getElementById('roleGroup').value = '';
+    document.getElementById('roleGroupText').innerText = '我的好友';
     document.getElementById('rolePersona').value = '';
     document.getElementById('roleVoiceId').value = '';
     document.getElementById('roleWorldbook').value = '';
-    document.getElementById('newRoleAvatarPreview').src = 'https://api.dicebear.com/7.x/notionists/svg?seed=new&backgroundColor=e0e0e0';
-    await localforage.removeItem('tempRoleAvatar');
+    document.getElementById('newRoleAvatarPreview').src = 'https://api.dicebear.com/7.x/notionists/svg?seed=new&backgroundColor=f5f5f5';
+    localforage.removeItem('tempRoleAvatar');
+    
+    showPage('addRolePage');
+    document.getElementById('chatAppTabBar').style.display = 'none';
+};
 
-    // 重新渲染并返回联系人列表
+// 打开“编辑角色” (点击好友卡片时触发)
+window.openEditRole = function(roleId) {
+    currentEditingRoleId = roleId;
+    const role = rolesList.find(r => r.id === roleId);
+    if (!role) return;
+
+    document.getElementById('addRolePageTitle').innerText = '编辑资料';
+    document.getElementById('roleName').value = role.name || '';
+    document.getElementById('roleRemark').value = role.remark || '';
+    document.getElementById('roleGroupText').innerText = role.group || '我的好友'; // 默认显示我的好友
+    document.getElementById('rolePersona').value = role.persona || '';
+    document.getElementById('roleVoiceId').value = role.voiceId || '';
+    document.getElementById('roleWorldbook').value = role.worldbook || '';
+    document.getElementById('newRoleAvatarPreview').src = role.avatar || '';
+    localforage.removeItem('tempRoleAvatar');
+
+    showPage('addRolePage');
+    document.getElementById('chatAppTabBar').style.display = 'none';
+};
+
+// 保存角色 (区分是新建还是更新)
+async function saveNewRole() {
+    const name = document.getElementById('roleName').value.trim();
+    if (!name) { showIosAlert('提示', '名字不能为空哦！'); return; }
+
+    const avatar = await localforage.getItem('tempRoleAvatar') || document.getElementById('newRoleAvatarPreview').src;
+    const groupName = document.getElementById('roleGroupText').innerText;
+
+    if (currentEditingRoleId) {
+        // 更新旧角色
+        const index = rolesList.findIndex(r => r.id === currentEditingRoleId);
+        if (index > -1) {
+            rolesList[index] = {
+                ...rolesList[index],
+                avatar: avatar, name: name, remark: document.getElementById('roleRemark').value.trim(),
+                group: groupName, persona: document.getElementById('rolePersona').value.trim(),
+                voiceId: document.getElementById('roleVoiceId').value.trim(), worldbook: document.getElementById('roleWorldbook').value.trim()
+            };
+        }
+    } else {
+        // 添加新角色
+        rolesList.push({
+            id: 'role_' + Date.now(),
+            avatar: avatar, name: name, remark: document.getElementById('roleRemark').value.trim(),
+            group: groupName, persona: document.getElementById('rolePersona').value.trim(),
+            voiceId: document.getElementById('roleVoiceId').value.trim(), worldbook: document.getElementById('roleWorldbook').value.trim()
+        });
+    }
+
+    await localforage.setItem('dbRolesList', rolesList);
+    await localforage.removeItem('tempRoleAvatar');
+    
     renderContactsList();
     hidePage('addRolePage');
     document.getElementById('chatAppTabBar').style.display = 'flex';
 }
+
+// ==== 分组管理逻辑 ====
+window.createNewGroup = async function() {
+    const name = await showIosPrompt('新建分组', '请输入新的分组名称', '例如: 特别关心');
+    if (!name || name.trim() === '') return;
+    if (customGroups.includes(name.trim())) { showIosAlert('提示', '该分组已存在！'); return; }
+    
+    customGroups.push(name.trim());
+    await localforage.setItem('dbCustomGroups', customGroups);
+    renderContactsList();
+};
+
+window.openGroupSelector = function() {
+    let html = '<div class="model-list-scroll">';
+    // 删除了“无”选项
+    customGroups.forEach(g => {
+
+        html += `<div class="model-list-item" onclick="selectGroup('${g}')"><span class="model-name">${g}</span></div>`;
+    });
+    html += '</div>';
+    
+    document.getElementById('iosModalTitle').innerText = '选择分组';
+    document.getElementById('iosModalMessage').innerHTML = html;
+    document.getElementById('iosModalInput').style.display = 'none';
+    document.getElementById('iosModalConfirm').style.display = 'none';
+    document.getElementById('iosModalCancel').style.display = 'block';
+    document.getElementById('iosModalCancel').innerText = '取消';
+    document.getElementById('iosModal').classList.add('show');
+    document.getElementById('iosModalCancel').onclick = () => document.getElementById('iosModal').classList.remove('show');
+};
+
+window.selectGroup = function(g) {
+    document.getElementById('roleGroupText').innerText = g;
+    document.getElementById('iosModal').classList.remove('show');
+};
 
 // ====== 新增聊天室逻辑 (真实记忆 + AI 对接) ======
 let currentChatTarget = null;
@@ -2822,7 +3046,7 @@ function getChatTime() {
     return now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
 }
 
-// 进入真实聊天
+// 进入真实聊天 (增加 isImage 兼容读取)
 function startRealChat(roleId) {
     closeChatContactSelector();
     currentChatTarget = rolesList.find(r => r.id === roleId);
@@ -2832,24 +3056,87 @@ function startRealChat(roleId) {
     const chatArea = document.getElementById('activeChatArea');
     chatArea.innerHTML = ''; 
 
-    // 【关键修改】：先显示页面，让浏览器能正确计算出容器高度
     showPage('activeChatPage');
 
-    // 然后再渲染历史记录，此时滚动到底部才会生效
     if (!chatHistoryDB[roleId]) chatHistoryDB[roleId] = [];
     const myAvatar = document.getElementById('insAvatarImg').src;
     
     chatHistoryDB[roleId].forEach(msg => {
-        appendMessage(msg.sender === 'me' ? myAvatar : currentChatTarget.avatar, msg.text, msg.sender);
+        appendMessage(msg.sender === 'me' ? myAvatar : currentChatTarget.avatar, msg.text, msg.sender, '', msg.isVoice, msg.isImage);
     });
 }
 
-// 往界面塞气泡
-function appendMessage(avatarSrc, text, type, id = '') {
+// 往界面塞气泡 (支持普通、语音、图片)
+function appendMessage(avatarSrc, text, type, id = '', isVoice = false, isImage = false) {
     const chatArea = document.getElementById('activeChatArea');
-    const html = `<div class="msg-row ${type}" ${id ? `id="${id}"` : ''}><img class="msg-avatar" src="${avatarSrc}"><div class="msg-bubble">${text}</div></div>`;
+    let innerHtml = '';
+
+    if (isImage) {
+        // 如果是图片，直接渲染 <img>
+        innerHtml = `<div class="msg-content-col"><img src="${text}" class="chat-bubble-img"></div>`;
+    } else if (isVoice) {
+        const duration = Math.min(Math.max(Math.ceil(text.length * 0.3), 1), 60);
+        const width = 80 + (duration * 3); 
+        innerHtml = `
+            <div class="msg-content-col">
+                <div class="msg-bubble" style="cursor: pointer; padding: 10px 14px;" onclick="this.nextElementSibling.classList.toggle('show')">
+                    <div class="voice-bar-inner" style="width: ${width}px;">
+                        <i class="fa-solid fa-circle-play voice-play-btn"></i>
+                        <div class="voice-wave"><span></span><span></span><span></span><span></span></div>
+                        <span class="voice-time">${duration}"</span>
+                    </div>
+                </div>
+                <div class="voice-translated-text">${text}</div>
+            </div>`;
+    } else {
+        // 普通文字
+        innerHtml = `<div class="msg-content-col"><div class="msg-bubble">${text}</div></div>`;
+    }
+
+    const html = `<div class="msg-row ${type}" ${id ? `id="${id}"` : ''}><img class="msg-avatar" src="${avatarSrc}">${innerHtml}</div>`;
     chatArea.insertAdjacentHTML('beforeend', html);
     chatArea.scrollTop = chatArea.scrollHeight; 
+}
+
+// 系统居中提示
+function appendSystemMessage(text) {
+    const chatArea = document.getElementById('activeChatArea');
+    chatArea.insertAdjacentHTML('beforeend', `<div class="msg-system"><span>${text}</span></div>`);
+    chatArea.scrollTop = chatArea.scrollHeight;
+}
+
+// ====== 发送图片模块 ======
+document.getElementById('chatImageUpload').addEventListener('change', async function(e) {
+    const files = e.target.files;
+    if (!files || files.length === 0 || !currentChatTarget) return;
+
+    const roleId = currentChatTarget.id;
+    const myAvatar = document.getElementById('insAvatarImg').src;
+    
+    // 遍历多张图片
+    for (let file of files) {
+        const base64 = await fileToBase64(file);
+        
+        // 渲染我方的图片气泡，并存入数据库
+        appendMessage(myAvatar, base64, 'me', '', false, true);
+        chatHistoryDB[roleId].push({ sender: 'me', text: base64, time: getChatTime(), isImage: true });
+    }
+    
+    await localforage.setItem('appChatHistory', chatHistoryDB);
+    renderSessionList();
+    e.target.value = ''; // 清空 input 允许重复选
+    
+   
+});
+
+// 图片转 Base64 辅助函数
+function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = error => reject(error);
+    });
 }
 
 // 核心发送逻辑：只发消息，不上报API
@@ -2871,7 +3158,7 @@ async function sendUserMessageOnly() {
     renderSessionList(); // 更新外层列表
 }
 
-// 核心回复逻辑：主动点击触发API，读取最新上下文
+// 核心回复逻辑：包含暗号捕捉与换头像系统
 async function triggerAiReply() {
     if (!currentChatTarget) return;
     const roleId = currentChatTarget.id;
@@ -2894,13 +3181,46 @@ async function triggerAiReply() {
     const typingEl = document.getElementById(typingId);
     if(typingEl) typingEl.remove();
 
+    // ========= 【核心系统：捕捉换头像暗号】 =========
+    if (rawReply.includes('[换头像]')) {
+        rawReply = rawReply.replace('[换头像]', '').trim(); // 清除暗号不让用户看见
+        
+        // 寻找我在聊天记录里发的最后一张图片
+        let lastMyImg = [...chatHistoryDB[roleId]].reverse().find(m => m.sender === 'me' && m.isImage);
+        
+        if (lastMyImg) {
+            // 将最新图片设置为当前角色头像
+            currentChatTarget.avatar = lastMyImg.text;
+            
+            // 同步保存到角色数据库
+            const roleIndex = rolesList.findIndex(r => r.id === roleId);
+            if(roleIndex > -1) rolesList[roleIndex].avatar = lastMyImg.text;
+            await localforage.setItem('dbRolesList', rolesList);
+            
+            // 触发高级系统提示
+            appendSystemMessage(`"${currentChatTarget.name}" 已将你发送的照片设为了新头像`);
+            
+            // 顺便刷新外层头像（如果当前正在显示的话）
+            const headerAvatar = document.querySelector('.ins-w-avatar-box img');
+            if (headerAvatar) headerAvatar.src = lastMyImg.text;
+        }
+    }
+    // ===============================================
+
     // 5. 按换行符拆分成数组，过滤空行，限制最多连续8条防止刷屏
     let replyArr = rawReply.split('\n').map(s => s.trim()).filter(s => s.length > 0).slice(0, 8);
 
     // 6. 循环渲染每一条独立气泡，模拟真人连续发信的打字停顿感
     for (let i = 0; i < replyArr.length; i++) {
         let msgText = replyArr[i];
+        let isVoice = false;
         
+        // 自动解析AI加了[语音]前缀的内容
+        if (msgText.startsWith('[语音]')) {
+            isVoice = true;
+            msgText = msgText.replace('[语音]', '').trim();
+        }
+
         // 如果不是第一条消息，显示一个短时的“正在输入”动画
         if (i > 0) {
             const subTypingId = 'typing_sub_' + Date.now();
@@ -2914,9 +3234,9 @@ async function triggerAiReply() {
             if(subTypingEl) subTypingEl.remove();
         }
 
-        // 渲染单条气泡并存入数据库
-        appendMessage(currentChatTarget.avatar, msgText, 'other');
-        chatHistoryDB[roleId].push({ sender: 'other', text: msgText, time: getChatTime() });
+        // 渲染单条气泡并存入数据库 (附带 isVoice 标识)
+        appendMessage(currentChatTarget.avatar, msgText, 'other', '', isVoice);
+        chatHistoryDB[roleId].push({ sender: 'other', text: msgText, time: getChatTime(), isVoice: isVoice });
     }
 
     // 7. 保存全部记录并刷新外层列表
@@ -2924,7 +3244,7 @@ async function triggerAiReply() {
     renderSessionList(); 
 }
 
-// 调用 API 请求逻辑 (自动带上最后 100 条上下文)
+// 调用 API 请求逻辑 (自动带上最后 100 条上下文，兼容多模态视觉)
 async function fetchAIResponse(role) {
     const apiConfig = await localforage.getItem('apiConfig');
     if (!apiConfig || !apiConfig.url || !apiConfig.key) {
@@ -2942,7 +3262,9 @@ async function fetchAIResponse(role) {
 2. 情绪与内核：深入理解角色设定的阴暗面、口癖、情绪波动。如果是暴躁傲娇，就尽情发脾气；如果是病娇冷漠，就惜字如金。允许敷衍、反问、转移话题。
 3. 真实打字习惯：像真人在微信聊天一样说话。少用标准的标点符号，多用空格断句，可以使用语气词(啊、呢、草、无语、切)或颜文字。
 4. 【多条连发机制】：真人在表达强烈情绪或说多件事时，会按回车连发多条短消息。你可以根据当前情境，回复1到8条甚至更多消息。
-5. 【格式要求】：为了系统能正确分割你的消息，如果你想连发多条气泡，请务必用换行符隔开。即：每一行文字将代表一条独立的聊天气泡。不要加1. 2.这种序号，直接换行写内容即可。`;
+5. 【格式要求】：为了系统能正确分割你的消息，如果你想连发多条气泡，请务必用换行符隔开。即：每一行文字将代表一条独立的聊天气泡。不要加1. 2.这种序号，直接换行写内容即可。
+6. 【发送语音条】：如果你觉得此时应该发送语音(例如情绪激动、撒娇、或者对方刚发了语音)，请在你回复的那行文字最前面加上 "[语音]" 前缀。例如：[语音]好的呀，一会儿见！
+7. 【换情头机制】：你可以看到用户发送的图片。如果用户发了图片且在聊天中要求你“换头像”、“换情头”、“用这个当头像”，请根据人设评估。如果同意，必须在回复的内容中包含 "[换头像]" 这四个字(包含方括号)。系统检测到该暗号会自动把你头像换成用户发的图！不同意则正常拒绝即可。`;
 
         let messages = [
             { role: "system", content: systemPrompt }
@@ -2952,7 +3274,17 @@ async function fetchAIResponse(role) {
         // 【核心修改】截取最后 100 条聊天记录保持长期记忆
         let recentHistory = history.slice(-100); 
         recentHistory.forEach(m => {
-            messages.push({ role: m.sender === 'me' ? 'user' : 'assistant', content: m.text });
+            // ========= 【这里改了：适配 OpenAI 视觉模型的图片传输格式】 =========
+            if (m.isImage) {
+                messages.push({
+                    role: m.sender === 'me' ? 'user' : 'assistant',
+                    content: [
+                        { type: "image_url", image_url: { url: m.text } }
+                    ]
+                });
+            } else {
+                messages.push({ role: m.sender === 'me' ? 'user' : 'assistant', content: m.text });
+            }
         });
 
         let endpoint = apiConfig.url.replace(/\/+$/, '');
@@ -2962,7 +3294,7 @@ async function fetchAIResponse(role) {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiConfig.key}` },
             body: JSON.stringify({
-                model: apiConfig.model || 'gpt-3.5-turbo',
+                model: apiConfig.model || 'gpt-3.5-turbo', // 注意：如果要用图片功能，请在页面设置里填带有vision能力的大模型（如 gpt-4o）
                 messages: messages,
                 temperature: Number(apiConfig.temperature) || 0.7
             })
@@ -2993,7 +3325,7 @@ function renderSessionList() {
         if(!role) return;
 
         const lastMsg = history[history.length - 1];
-        let previewText = lastMsg.text;
+        let previewText = lastMsg.isVoice ? `[语音] ${lastMsg.text}` : lastMsg.text;
         // 如果是动画残留代码，过滤一下预览
         if(previewText.includes('typing-dots')) previewText = '[正在输入]';
 
@@ -3065,6 +3397,36 @@ document.getElementById('importPersonaInput').addEventListener('change', functio
     // 清空 input，允许用户重复选择同一个文件
     e.target.value = '';
 });
+
+// ====== 发送语音模块 ======
+function openVoiceModal() {
+    document.getElementById('voiceModalInput').value = '';
+    document.getElementById('voiceModal').classList.add('show');
+    setTimeout(() => { document.getElementById('voiceModalInput').focus(); }, 100);
+}
+
+function closeVoiceModal() {
+    document.getElementById('voiceModal').classList.remove('show');
+}
+
+async function confirmVoiceModal() {
+    const text = document.getElementById('voiceModalInput').value.trim();
+    if (!text) { closeVoiceModal(); return; }
+    closeVoiceModal();
+    
+    if (!currentChatTarget) return;
+    const roleId = currentChatTarget.id;
+    const myAvatar = document.getElementById('insAvatarImg').src;
+    const timeNow = getChatTime();
+
+    // 我方语音存入数据库
+    appendMessage(myAvatar, text, 'me', '', true);
+    chatHistoryDB[roleId].push({ sender: 'me', text: text, time: timeNow, isVoice: true });
+    await localforage.setItem('appChatHistory', chatHistoryDB);
+    renderSessionList();
+    
+   
+}
 
     </script>
 </body>
