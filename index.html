@@ -443,7 +443,7 @@
 
 /* 全局悬浮 Tab 栏 */
 .ins-global-tab {
-    position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
+    position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%);
     width: 85%; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
     border-radius: 30px; display: flex; justify-content: space-around; padding: 18px 20px;
     box-shadow: 0 10px 30px rgba(0,0,0,0.08); border: 1px solid rgba(255,255,255,0.5); z-index: 104; /* 层级高于普通页面 */
@@ -758,7 +758,7 @@
 
 .msg-row { 
     display: flex; align-items: flex-start; /* 改成靠上对齐，气泡自然往下伸长 */
-    gap: 10px; width: 100%; margin-bottom: 12px; 
+    gap: 10px; width: 100%; margin-bottom: 6px; 
 }
 
 .msg-avatar { 
@@ -1309,6 +1309,28 @@
                 <div class="item-arrow"><i class="fa-solid fa-chevron-right"></i></div>
             </div>
         </div>
+
+        <!-- 第四组：数据备份 -->
+        <div class="ios-group">
+            <div class="ios-item" onclick="exportAllData()">
+                <div class="item-icon bg-export"><i class="fa-solid fa-arrow-up-right-from-square"></i></div>
+                <div class="item-content">
+                    <div class="item-title">导出全部数据</div>
+                    <div class="item-subtitle">备份包含聊天记录在内的所有数据</div>
+                </div>
+                <div class="item-arrow"><i class="fa-solid fa-chevron-right"></i></div>
+            </div>
+            <div class="ios-item" onclick="document.getElementById('importAllDataInput').click()">
+                <div class="item-icon bg-import"><i class="fa-solid fa-download"></i></div>
+                <div class="item-content">
+                    <div class="item-title">导入全部数据</div>
+                    <div class="item-subtitle">从 JSON 文件恢复所有数据</div>
+                </div>
+                <div class="item-arrow"><i class="fa-solid fa-chevron-right"></i></div>
+            </div>
+        </div>
+        <!-- 全局数据专属隐藏导入接口 -->
+        <input type="file" id="importAllDataInput" accept=".json" style="display: none;">
 
         <!-- 版本信息 -->
         <div style="text-align:center; padding: 30px 0 10px; font-size:12px; color:#8e8e93;">
@@ -2088,64 +2110,96 @@ setupImageUpload('insAvatarImg', 'insAvatarInput', 'dbInsAvatar');
 //             导 出 与 导 入 逻 辑
 // ==========================================
 
-// 导出 JSON（升级版 - 适配手机端）
+// ==========================================
+//             导 出 与 导 入 逻 辑
+// ==========================================
+
+// 1. 【主题页专属】仅导出桌面美化配置
 async function exportDesktop() {
     try {
         let exportData = {};
+        // 核心：这里限制了只提取和排版、图片、字体相关的键值，不碰聊天记录
+        const themeKeys = [
+            'dbTopImg1', 'dbTopImg2', 'dbTopImg3', 'dbEarbudImg1', 'dbEarbudImg2', 'dbPlayerImg',
+            'dbPolaroidAvatar', 'dbPolaroidRight', 'dbPolaroidLeft', 'dbPolaroidBandaid', 'dbInsAvatar',
+            'bioText', 'earbudText', 'playerText', 'polaroidText', 'insAvatarText', 'insNameText',
+            'insHandleText', 'insDateText', 'insDayText', 'insBubbleText',
+            'sysWallpaperImg', 'dbCustomIcons', 'sysFontScale', 'sysFontColor', 'sysCustomFont', 'fontPresets'
+        ];
+        
+        for (let key of themeKeys) {
+            const val = await localforage.getItem(key);
+            if (val !== null) exportData[key] = val;
+        }
+        
+        const dataStr = JSON.stringify(exportData);
+        const file = new File([dataStr], "我的桌面美化配置.json", { type: "application/json" });
+        
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            await navigator.share({ title: '桌面配置文件', files: [file] });
+        } else {
+            const url = URL.createObjectURL(file);
+            const a = document.createElement("a");
+            a.href = url; a.download = "我的桌面美化配置.json";
+            document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+            await showIosAlert("导出完毕", "桌面美化配置已打包为JSON。");
+        }
+    } catch (err) {
+        showIosAlert("导出提示", "导出结束，请重试。");
+    }
+}
+
+// 2. 【设置页专属】导出全量数据（包含聊天、角色、API）
+async function exportAllData() {
+    try {
+        let exportData = {};
+        // 核心：遍历数据库所有内容
         await localforage.iterate((value, key) => {
             exportData[key] = value;
         });
         
         const dataStr = JSON.stringify(exportData);
-        const file = new File([dataStr], "我的桌面美化配置.json", { type: "application/json" });
+        const file = new File([dataStr], "我的小手机全部数据备份.json", { type: "application/json" });
         
-        // 优先尝试唤起手机原生分享菜单 (可存入系统“文件”App)
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
-            await navigator.share({
-                title: '桌面配置文件备份',
-                files: [file]
-            });
+            await navigator.share({ title: '小手机全部数据', files: [file] });
         } else {
-            // 电脑端或老浏览器回退到普通下载
             const url = URL.createObjectURL(file);
             const a = document.createElement("a");
-            a.href = url;
-            a.download = "我的桌面美化配置.json";
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            
-            await showIosAlert("导出完毕", "配置已打包为JSON。如果没看到下载文件，请点击右上角在自带浏览器(如Safari)中打开后重试。");
+            a.href = url; a.download = "我的小手机全部数据备份.json";
+            document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+            await showIosAlert("导出完毕", "所有数据(含聊天记录)已打包为JSON。");
         }
     } catch (err) {
-        console.error(err);
-        showIosAlert("导出提示", "导出结束。如果未能成功保存，请使用 Safari 浏览器重试。");
+        showIosAlert("导出提示", "导出结束，请重试。");
     }
 }
 
-// 导入 JSON
-document.getElementById('importJsonInput').addEventListener('change', function(e) {
+// 3. 通用导入方法
+async function handleImport(e, successMsg) {
     const file = e.target.files[0];
     if (!file) return;
-    
     const reader = new FileReader();
     reader.onload = async function(ev) {
         try {
             const importData = JSON.parse(ev.target.result);
-            // 将 JSON 里的数据全部写回数据库
             for (let key in importData) {
                 await localforage.setItem(key, importData[key]);
             }
-            await showIosAlert("导入成功", "桌面配置已完美恢复！点击确定后将自动刷新页面生效。");
-            location.reload(); // 刷新页面以应用新数据
+            await showIosAlert("导入成功", successMsg);
+            location.reload(); 
         } catch (err) {
             showIosAlert("导入失败", "文件格式不正确或解析错误。");
         }
     };
     reader.readAsText(file);
-    e.target.value = ''; // 允许重复导入同一个文件
-});
+    e.target.value = ''; 
+}
+
+// 绑定主题页导入
+document.getElementById('importJsonInput').addEventListener('change', (e) => handleImport(e, "桌面配置已完美恢复！自动刷新中..."));
+// 绑定全局设置页导入
+document.getElementById('importAllDataInput').addEventListener('change', (e) => handleImport(e, "全部数据(含聊天)已完美恢复！自动刷新中..."));
 
 // ==========================================
 //            设 置 页 面 逻 辑
@@ -2778,15 +2832,16 @@ function startRealChat(roleId) {
     const chatArea = document.getElementById('activeChatArea');
     chatArea.innerHTML = ''; 
 
-    // 渲染历史记录
+    // 【关键修改】：先显示页面，让浏览器能正确计算出容器高度
+    showPage('activeChatPage');
+
+    // 然后再渲染历史记录，此时滚动到底部才会生效
     if (!chatHistoryDB[roleId]) chatHistoryDB[roleId] = [];
     const myAvatar = document.getElementById('insAvatarImg').src;
     
     chatHistoryDB[roleId].forEach(msg => {
         appendMessage(msg.sender === 'me' ? myAvatar : currentChatTarget.avatar, msg.text, msg.sender);
     });
-
-    showPage('activeChatPage');
 }
 
 // 往界面塞气泡
